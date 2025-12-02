@@ -415,9 +415,10 @@
             <div class="p-6 space-y-4">
                 <div class="flex items-start gap-3">
                     <div class="text-xl">🇹🇼</div>
-                    <div>
+                    <div class="flex-1">
                         <p class="text-sm text-gray-400">中文意思</p>
                         <p id="modal-zh" class="text-2xl font-bold text-gray-700">蘋果</p>
+                        <div id="modal-def" class="hidden"></div>
                     </div>
                 </div>
                 <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-100">
@@ -1690,6 +1691,7 @@ const vocabularyData =
         // 3. Initialization & Navigation (Smart Header Logic)
         // ----------------------------------------------------
         let lastScrollY = 0;
+        let preferredVoice = null;
 
         window.onload = function() {
             resetAndGoHome();
@@ -1700,7 +1702,27 @@ const vocabularyData =
             });
 
             window.addEventListener('scroll', handleSmartHeader);
+
+            // Init Voices
+            if ('speechSynthesis' in window) {
+                speechSynthesis.onvoiceschanged = loadVoices;
+                loadVoices();
+            }
         };
+
+        function loadVoices() {
+            const voices = window.speechSynthesis.getVoices();
+            const priorities = ["Google US English", "Samantha", "Microsoft Zira", "Google UK English Female", "Google UK English Male", "Natural"];
+            
+            for (const name of priorities) {
+                preferredVoice = voices.find(v => v.name.includes(name));
+                if (preferredVoice) break;
+            }
+            
+            if (!preferredVoice) {
+                preferredVoice = voices.find(v => v.lang.startsWith('en'));
+            }
+        }
 
         function handleSmartHeader() {
             const currentScrollY = window.scrollY;
@@ -1785,14 +1807,20 @@ const vocabularyData =
                 return;
             }
 
-            grid.innerHTML = filtered.map(item => `
+            grid.innerHTML = filtered.map(item => {
+                const defHtml = (item.def && item.def !== '-') 
+                    ? `<div class="text-lg text-gray-500 mt-2 font-medium">其他：${item.def}</div>` 
+                    : '';
+
+                return `
                 <div class="vocab-card" onclick="toggleFlip(this)">
                     <div class="vocab-card-inner">
                         <!-- Front -->
                         <div class="vocab-front group">
                             <span class="text-8xl mb-6 transform group-hover:scale-110 transition">${item.emoji}</span>
                             <h3 class="text-4xl font-bold text-gray-700">${item.word}</h3>
-                            <button onclick="event.stopPropagation(); playTTS('${item.word}')" class="mt-6 w-12 h-12 rounded-full bg-blue-100 text-blue-500 hover:bg-blue-500 hover:text-white transition flex items-center justify-center text-xl">
+                            <!-- Fixed: Pass ID and type to avoid quote escaping issues -->
+                            <button onclick="event.stopPropagation(); playTTS(${item.id}, 'word')" class="mt-6 w-12 h-12 rounded-full bg-blue-100 text-blue-500 hover:bg-blue-500 hover:text-white transition flex items-center justify-center text-xl">
                                 <i class="fa-solid fa-volume-high"></i>
                             </button>
                         </div>
@@ -1801,6 +1829,7 @@ const vocabularyData =
                             <div class="mb-4">
                                 <h3 class="text-3xl font-bold text-gray-800 mb-1">${item.word}</h3>
                                 <p class="text-4xl text-pink-500 font-bold">${item.zh}</p>
+                                ${defHtml}
                             </div>
                             
                             <div class="bg-white p-4 rounded-xl w-full text-left shadow-sm border border-gray-100">
@@ -1809,17 +1838,18 @@ const vocabularyData =
                             </div>
                             
                              <div class="flex gap-2 justify-center mt-4 w-full">
-                                <button onclick="event.stopPropagation(); playTTS('${item.word}')" class="flex-1 py-3 bg-gray-100 rounded-xl text-gray-600 font-bold hover:bg-blue-100 text-sm">
+                                <!-- Fixed: Pass ID and type -->
+                                <button onclick="event.stopPropagation(); playTTS(${item.id}, 'word')" class="flex-1 py-3 bg-gray-100 rounded-xl text-gray-600 font-bold hover:bg-blue-100 text-sm">
                                     <i class="fa-solid fa-volume-high"></i> 單字
                                 </button>
-                                <button onclick="event.stopPropagation(); playTTS('${item.sent}')" class="flex-1 py-3 bg-gray-100 rounded-xl text-gray-600 font-bold hover:bg-yellow-100 text-sm">
+                                <button onclick="event.stopPropagation(); playTTS(${item.id}, 'sent')" class="flex-1 py-3 bg-gray-100 rounded-xl text-gray-600 font-bold hover:bg-yellow-100 text-sm">
                                     <i class="fa-solid fa-volume-high"></i> 例句
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         function toggleFlip(card) {
@@ -2161,6 +2191,15 @@ const vocabularyData =
             document.getElementById('modal-level').innerText = displayLevel;
             document.getElementById('modal-zh').innerText = item.zh;
             
+            const defEl = document.getElementById('modal-def');
+            if (item.def && item.def !== '-') {
+                defEl.innerHTML = `其他：${item.def}`;
+                defEl.className = "text-lg text-gray-500 mt-1 font-medium block";
+            } else {
+                defEl.innerHTML = '';
+                defEl.className = "hidden";
+            }
+            
             document.getElementById('modal-sent').innerText = item.sent;
             document.getElementById('modal-sent-zh').innerText = item.sent_zh;
             
@@ -2180,14 +2219,36 @@ const vocabularyData =
             }
         }
 
-        function playTTS(text) {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'en-US';
-                utterance.rate = 0.7; 
-                window.speechSynthesis.speak(utterance);
+        function playTTS(input, type = null) {
+            if (!('speechSynthesis' in window)) {
+                console.log("TTS not supported");
+                return;
             }
+
+            let text = input;
+
+            // Handle ID lookup if type is provided and input is a number
+            if (typeof input === 'number' && type) {
+                const item = vocabularyData.find(i => i.id === input);
+                if (item) {
+                    if (type === 'word') text = item.word;
+                    if (type === 'sent') text = item.sent;
+                }
+            }
+
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.8; 
+            
+            if (preferredVoice) {
+                utterance.voice = preferredVoice;
+            } else if (!preferredVoice) {
+                loadVoices();
+                if(preferredVoice) utterance.voice = preferredVoice;
+            }
+
+            window.speechSynthesis.speak(utterance);
         }
 
         function speakQuestion() {
