@@ -2252,7 +2252,7 @@ function playAgain() {
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'en-US';
-            utterance.rate = 0.8; 
+            utterance.rate = 0.7; 
             
             if (preferredVoice) {
                 utterance.voice = preferredVoice;
@@ -2276,5 +2276,6 @@ function playAgain() {
     </script>
 </body>
 </html>
+
 
 
