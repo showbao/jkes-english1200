@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -262,15 +263,15 @@
                     </div>
 
                     <div>
-<label class="block text-gray-600 font-bold mb-2">選擇模式</label>
-<div class="grid grid-cols-2 gap-3">
-    <button class="mode-btn btn-pastel bg-gray-100 p-3 rounded-xl font-bold text-gray-500" onclick="selectMode('cloze', this)">
-        📝 克漏字填空
-    </button>
-    <button class="mode-btn btn-pastel bg-gray-100 p-3 rounded-xl font-bold text-gray-500" onclick="selectMode('match', this)">
-        🧩 配對遊戲
-    </button>
-</div>
+                        <label class="block text-gray-600 font-bold mb-2">選擇模式</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button class="mode-btn btn-pastel bg-gray-100 p-3 rounded-xl font-bold text-gray-500 tab-active" onclick="selectMode('cloze', this)">
+                                📝 克漏字填空
+                            </button>
+                            <button class="mode-btn btn-pastel bg-gray-100 p-3 rounded-xl font-bold text-gray-500" onclick="selectMode('match', this)">
+                                🧩 配對遊戲
+                            </button>
+                        </div>
                     </div>
 
                     <div>
@@ -1657,7 +1658,7 @@ const vocabularyData =
             learnFilter: { level: 'Elementary', search: '' },
             game: {
                 student: '',
-                mode: 'null',
+                mode: 'cloze',
                 selectedTime: null, // Start with null
                 timeLimit: 60,
                 level: 'Elementary',
@@ -1772,25 +1773,16 @@ const vocabularyData =
             showSection('home-section');
         }
 function playAgain() {
-// 1. 停止計時器
-    clearInterval(appState.game.timer);
-    appState.game.isPlaying = false;
+            // 1. 停止所有計時器 (安全起見)
+            clearInterval(appState.game.timer);
+            appState.game.isPlaying = false;
 
-    // 2. 重置「挑戰時間」
-    appState.game.selectedTime = null;
-    updateTimeSelectionUI();
+            // 2. 重置「挑戰時間」的選擇 (變回未選取狀態)
+            appState.game.selectedTime = null;
+            updateTimeSelectionUI();
 
-    // 3. [新增] 重置「遊戲模式」為未選取
-    appState.game.mode = null; 
-    document.querySelectorAll('.mode-btn').forEach(b => {
-        // 移除選取樣式
-        b.classList.remove('tab-active', 'bg-blue-100', 'text-blue-600');
-        // 加回灰色樣式
-        b.classList.add('bg-gray-100', 'text-gray-500');
-    });
-
-    // 4. 切換畫面
-    showSection('game-setup-section');
+            // 3. 切換畫面到「遊戲設定」頁
+            showSection('game-setup-section');
             
             // (註：這裡沒有清除 studentInfo，所以學生不用重新輸入座號，體驗更好！)
         }
@@ -1916,10 +1908,7 @@ function playAgain() {
                 alert("請輸入班級座號喔！");
                 return;
             }
-if (!appState.game.mode) {
-        alert("請先選擇遊戲模式（克漏字或配對）！");
-        return;
-            
+
             if (!appState.game.selectedTime) {
                 alert("請選擇挑戰時間！");
                 return;
@@ -2288,7 +2277,6 @@ if (!appState.game.mode) {
     </script>
 </body>
 </html>
-
 
 
 
