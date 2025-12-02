@@ -1809,7 +1809,7 @@ const vocabularyData =
 
             grid.innerHTML = filtered.map(item => {
                 const defHtml = (item.def && item.def !== '-') 
-                    ? `<div class="text-lg text-gray-500 mt-2 font-medium">其他：${item.def}</div>` 
+                    ? `<div class="text-lg text-gray-500 mt-2 font-medium">其他解釋：${item.def}</div>` 
                     : '';
 
                 return `
@@ -2193,7 +2193,7 @@ const vocabularyData =
             
             const defEl = document.getElementById('modal-def');
             if (item.def && item.def !== '-') {
-                defEl.innerHTML = `其他：${item.def}`;
+                defEl.innerHTML = `其他解釋：${item.def}`;
                 defEl.className = "text-lg text-gray-500 mt-1 font-medium block";
             } else {
                 defEl.innerHTML = '';
@@ -2263,3 +2263,4 @@ const vocabularyData =
     </script>
 </body>
 </html>
+
