@@ -1657,7 +1657,7 @@ const vocabularyData =
             learnFilter: { level: 'Elementary', search: '' },
             game: {
                 student: '',
-                mode: 'cloze',
+                mode: null,
                 selectedTime: null, // Start with null
                 timeLimit: 60,
                 level: 'Elementary',
@@ -1780,7 +1780,15 @@ function playAgain() {
             appState.game.selectedTime = null;
             updateTimeSelectionUI();
 
-            // 3. 切換畫面到「遊戲設定」頁
+            // 3. [新增] 重置「遊戲模式」為未選取
+            appState.game.mode = null; 
+            document.querySelectorAll('.mode-btn').forEach(b => {
+            // 移除選取樣式
+            b.classList.remove('tab-active', 'bg-blue-100', 'text-blue-600');
+            // 加回灰色樣式
+            b.classList.add('bg-gray-100', 'text-gray-500');
+            
+            // 4. 切換畫面到「遊戲設定」頁
             showSection('game-setup-section');
             
             // (註：這裡沒有清除 studentInfo，所以學生不用重新輸入座號，體驗更好！)
@@ -1907,7 +1915,13 @@ function playAgain() {
                 alert("請輸入班級座號喔！");
                 return;
             }
-
+            
+            // ↓↓↓ [新增] 檢查有沒有選模式 ↓↓↓
+             if (!appState.game.mode) {
+                 alert("請先選擇遊戲模式（克漏字或配對）！");
+                 return;
+            }
+            
             if (!appState.game.selectedTime) {
                 alert("請選擇挑戰時間！");
                 return;
@@ -2276,6 +2290,7 @@ function playAgain() {
     </script>
 </body>
 </html>
+
 
 
 
