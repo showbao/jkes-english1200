@@ -387,7 +387,7 @@
                     </div>
 
                     <div class="text-center">
-                        <button onclick="resetAndGoHome()" class="btn-pastel btn-blue px-10 py-4 rounded-full text-2xl font-bold shadow-lg">
+                        <button onclick="playAgain()" class="btn-pastel btn-blue px-10 py-4 rounded-full text-2xl font-bold shadow-lg">
                             <i class="fa-solid fa-rotate-right"></i> 再玩一次
                         </button>
                     </div>
@@ -1771,7 +1771,20 @@ const vocabularyData =
             
             showSection('home-section');
         }
+function playAgain() {
+            // 1. 停止所有計時器 (安全起見)
+            clearInterval(appState.game.timer);
+            appState.game.isPlaying = false;
 
+            // 2. 重置「挑戰時間」的選擇 (變回未選取狀態)
+            appState.game.selectedTime = null;
+            updateTimeSelectionUI();
+
+            // 3. 切換畫面到「遊戲設定」頁
+            showSection('game-setup-section');
+            
+            // (註：這裡沒有清除 studentInfo，所以學生不用重新輸入座號，體驗更好！)
+        }
         function showSection(sectionId) {
             document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
             document.getElementById(sectionId).classList.remove('hidden');
@@ -2263,4 +2276,5 @@ const vocabularyData =
     </script>
 </body>
 </html>
+
 
