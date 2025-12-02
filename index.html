@@ -1855,7 +1855,7 @@ function playAgain() {
                                 <button onclick="event.stopPropagation(); playTTS('${item.word.replace(/'/g, "\\'")}')" class="flex-1 py-3 bg-gray-100 rounded-xl text-gray-600 font-bold hover:bg-blue-100 text-sm">
                                     <i class="fa-solid fa-volume-high"></i> 單字
                                 </button>
-                                <button onclick="event.stopPropagation(); playTTS('${item.word.replace(/'/g, "\\'")}')" class="flex-1 py-3 bg-gray-100 rounded-xl text-gray-600 font-bold hover:bg-yellow-100 text-sm">
+                                <button onclick="event.stopPropagation(); playTTS('${item.sent.replace(/'/g, "\\'")}')" class="flex-1 py-3 bg-gray-100 rounded-xl text-gray-600 font-bold hover:bg-yellow-100 text-sm">
                                     <i class="fa-solid fa-volume-high"></i> 例句
                                 </button>
                             </div>
@@ -2276,6 +2276,7 @@ function playTTS(text) {
     </script>
 </body>
 </html>
+
 
 
 
