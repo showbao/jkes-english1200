@@ -187,29 +187,27 @@
 <body class="min-h-screen flex flex-col">
 
     <!-- Header -->
-    <header id="main-header" class="bg-white shadow-md p-4 sticky top-0 z-50 w-full transition-transform duration-300">
+<header id="main-header" class="bg-white shadow-md p-4 sticky top-0 z-50 w-full transition-transform duration-300">
         <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
             
-            <div class="flex flex-col md:flex-row items-center gap-2 md:gap-4" onclick="resetAndGoHome()">
+            <div class="flex flex-row items-center gap-3" onclick="resetAndGoHome()">
                 
-                <h1 class="text-2xl md:text-3xl font-bold text-gray-700 cursor-pointer text-center md:text-left">
+                <h1 class="text-lg md:text-3xl font-bold text-gray-700 cursor-pointer whitespace-nowrap">
                     <i class="fa-solid fa-school text-pink-400"></i> 台中市建功國小常用英語1200字
                 </h1>
 
-                <a href="https://hits.seeyoufarm.com" class="opacity-80 hover:opacity-100 transition mt-1 md:mt-0" title="累積訪客數">
-                    <img src="https://hitscounter.dev/api/hit?url=https%3A%2F%2Fshowbao.github.io%2Fjkes-english1200%2F&label=造訪人次&icon=file-earmark-person&color=%236ea8fe&message=&style=flat-square&tz=Asia%2FTaipei">
-                </a>
+                <img src="https://hitscounter.dev/api/hit?url=https%3A%2F%2Fshowbao.github.io%2Fjkes-english1200%2F&label=造訪人次&icon=file-earmark-person&color=%236ea8fe&message=&style=flat-square&tz=Asia%2FTaipei">
 
             </div>
 
             <nav class="flex gap-2">
-                <button onclick="resetAndGoHome()" class="btn-pastel btn-yellow px-4 py-2 rounded-xl font-bold text-sm md:text-base">
+                <button onclick="resetAndGoHome()" class="btn-pastel btn-yellow px-3 py-2 md:px-4 md:py-2 rounded-xl font-bold text-sm md:text-base whitespace-nowrap">
                     <i class="fa-solid fa-house"></i> 首頁
                 </button>
-                <button onclick="showSection('learn-section')" class="btn-pastel btn-blue px-4 py-2 rounded-xl font-bold text-sm md:text-base">
-                    <i class="fa-solid fa-book-open"></i> 單字學習
+                <button onclick="showSection('learn-section')" class="btn-pastel btn-blue px-3 py-2 md:px-4 md:py-2 rounded-xl font-bold text-sm md:text-base whitespace-nowrap">
+                    <i class="fa-solid fa-book-open"></i> 學習單字
                 </button>
-                <button onclick="showSection('game-setup-section')" class="btn-pastel btn-pink px-4 py-2 rounded-xl font-bold text-sm md:text-base">
+                <button onclick="showSection('game-setup-section')" class="btn-pastel btn-pink px-3 py-2 md:px-4 md:py-2 rounded-xl font-bold text-sm md:text-base whitespace-nowrap">
                     <i class="fa-solid fa-gamepad"></i> 檢測單字
                 </button>
             </nav>
@@ -223,7 +221,7 @@
         <section id="home-section" class="flex flex-col items-center justify-center h-[70vh] text-center animate-pop">
             <div class="bg-white p-8 rounded-3xl shadow-xl border-4 border-dashed border-blue-200 max-w-2xl">
                 <div class="text-6xl mb-4">🎈</div>
-                <h2 class="text-4xl font-bold mb-4 text-gray-700">歡迎來到英語單字樂園！</h2>
+                <h2 class="text-2xl md:text-4xl font-bold mb-4 text-gray-700 whitespace-nowrap">歡迎來到英語單字樂園！</h2>
                 <p class="text-xl text-gray-500 mb-8">Ready to learn?</p>
                 <div class="flex flex-col sm:flex-row gap-4 justify-center">
                     <button onclick="showSection('learn-section')" class="btn-pastel btn-blue text-2xl px-8 py-4 rounded-2xl w-full sm:w-auto">
@@ -2286,6 +2284,7 @@ function playTTS(text) {
     </script>
 </body>
 </html>
+
 
 
 
