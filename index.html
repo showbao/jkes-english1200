@@ -141,11 +141,14 @@
         }
         .modal-content {
             background-color: #fff;
-            margin: 10% auto;
+            margin: 5% auto; /* Adjusted margin */
             border-radius: 1.5rem;
             box-shadow: 0 10px 25px rgba(0,0,0,0.2);
             position: relative;
             animation: popIn 0.3s;
+            max-height: 90vh; /* Limit height */
+            display: flex;
+            flex-direction: column;
         }
         
         /* Locking Overlay */
@@ -182,15 +185,92 @@
             box-shadow: none;
             transform: translateY(2px);
         }
+        
+        /* Catalog Modal Specifics */
+        .alphabet-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            justify-content: center;
+            padding: 10px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .alpha-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 1px solid #cbd5e1;
+            background: white;
+            color: #64748b;
+            font-size: 0.8rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .alpha-btn:hover {
+            background: var(--pastel-blue);
+            color: white;
+            border-color: var(--pastel-blue);
+        }
+        
+        .catalog-scroll-area {
+            overflow-y: auto;
+            flex-grow: 1;
+            padding: 20px;
+        }
+        
+        .catalog-group-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #94a3b8;
+            margin: 20px 0 10px 0;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 5px;
+        }
+        
+        .catalog-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* Default 2 cols for mobile */
+            gap: 12px;
+        }
+        
+        @media (min-width: 768px) {
+            .catalog-grid {
+                grid-template-columns: repeat(4, 1fr); /* 4 cols for desktop */
+            }
+        }
+
+        .catalog-item {
+            padding: 12px;
+            background: #fff;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            border: 2px solid #f1f5f9;
+            transition: all 0.2s;
+            color: #475569;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .catalog-item:hover {
+            background: #f0f9ff;
+            border-color: var(--pastel-blue);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
     <!-- Header -->
-<header id="main-header" class="bg-white shadow-md p-4 sticky top-0 z-50 w-full transition-transform duration-300">
+    <header id="main-header" class="bg-white shadow-md p-4 sticky top-0 z-50 w-full transition-transform duration-300">
         <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
             
-<div class="flex flex-col md:flex-row items-center md:items-end gap-1 md:gap-3 cursor-pointer" onclick="resetAndGoHome()">
+            <div class="flex flex-col md:flex-row items-center md:items-end gap-1 md:gap-3 cursor-pointer" onclick="resetAndGoHome()">
                 
                 <h1 class="text-xl md:text-3xl font-bold text-gray-700 whitespace-nowrap">
                     <i class="fa-solid fa-school text-pink-400"></i> 台中市建功國小常用英語1200字
@@ -244,16 +324,26 @@
                     <button class="level-btn btn-pastel bg-red-100 px-6 py-2 rounded-full text-red-600 text-lg font-bold" data-level="Advanced" onclick="filterLevel('Advanced')">高級</button>
                 </div>
                 
-                <!-- Search Only -->
-                <div class="w-full max-w-md mx-auto relative">
-                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-gray-400 text-lg"></i>
-                    <input type="text" id="searchInput" placeholder="搜尋英文單字..." class="w-full pl-12 pr-4 py-3 rounded-2xl border-2 border-gray-200 focus:border-blue-300 focus:outline-none transition text-lg">
+                <!-- Search & Catalog -->
+                <div class="w-full max-w-xl mx-auto flex gap-2">
+                    <div class="relative flex-grow">
+                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-gray-400 text-lg"></i>
+                        <input type="text" id="searchInput" placeholder="搜尋英文單字..." class="w-full pl-12 pr-4 py-3 rounded-2xl border-2 border-gray-200 focus:border-blue-300 focus:outline-none transition text-lg">
+                    </div>
+                    <button onclick="openCatalogModal()" class="btn-pastel bg-purple-100 text-purple-600 px-4 py-3 rounded-2xl font-bold whitespace-nowrap">
+                        <i class="fa-solid fa-list-ul"></i> 目錄
+                    </button>
                 </div>
             </div>
 
             <!-- Cards Grid -->
-            <div id="vocab-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 pb-10 px-2">
+            <div id="vocab-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 pb-4 px-2">
                 <!-- JS renders cards here -->
+            </div>
+
+            <!-- Pagination Controls -->
+            <div id="pagination-controls" class="flex justify-center items-center gap-4 py-8">
+                <!-- JS renders pagination here -->
             </div>
         </section>
 
@@ -443,6 +533,29 @@
         </div>
     </div>
 
+    <!-- Catalog Modal -->
+    <div id="catalog-modal" class="modal">
+        <div class="modal-content w-11/12 max-w-4xl mx-auto p-0">
+            <!-- Header with Title and Close -->
+            <div class="flex justify-between items-center p-4 border-b bg-white rounded-t-2xl">
+                <h2 class="text-2xl font-bold text-gray-700"><i class="fa-solid fa-list-ul"></i> 單字目錄</h2>
+                <span onclick="closeCatalogModal()" class="text-3xl text-gray-400 cursor-pointer hover:text-red-500">&times;</span>
+            </div>
+            
+            <!-- A-Z Index Bar -->
+            <div id="alphabet-bar" class="alphabet-bar">
+                <!-- A-Z buttons injected here -->
+            </div>
+
+            <!-- Content Area -->
+            <div id="catalog-scroll-area" class="catalog-scroll-area">
+                <div id="catalog-content">
+                    <!-- Word list injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Lock Screen Overlay -->
     <div id="lock-overlay">
         <div class="text-6xl mb-4">🔒</div>
@@ -453,10 +566,11 @@
 
     <script>
         // ----------------------------------------------------
-        // 1. Data Structure
+        // 1. Data Structure & Config
         // ----------------------------------------------------
-const vocabularyData =
-[
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw0MTm4MhMyCLFXJ1eEQ0CBJgsc59HYVC2bpKoNYEjKtiolwg9sfo92K8tSleC9tKfI/exec';
+
+        const vocabularyData = [
   {"id": 1, "level": "Elementary", "word": "a", "zh": "一個", "def": "-", "emoji": "", "sent": "I have a red pen.", "sent_zh": "我有一枝紅色的筆。"},
   {"id": 2, "level": "Elementary", "word": "about", "zh": "關於", "def": "大約; 四處", "emoji": "ℹ️", "sent": "It is about five o'clock.", "sent_zh": "現在大約是五點鐘。"},
   {"id": 3, "level": "Elementary", "word": "after", "zh": "在...之後", "def": "以後; 後來", "emoji": "🔜", "sent": "Clean your room after dinner.", "sent_zh": "晚餐後清理你的房間。"},
@@ -1654,22 +1768,24 @@ const vocabularyData =
   {"id": 407, "level": "Advanced", "word": "yet", "zh": "尚未", "def": "然而; 已經(疑問句)", "emoji": "⏳", "sent": "Are you ready yet?", "sent_zh": "你準備好了嗎？"},
   {"id": 408, "level": "Advanced", "word": "young", "zh": "年輕的", "def": "幼小的", "emoji": "👶", "sent": "He is a young boy.", "sent_zh": "他是一個年輕的男孩。"},
   {"id": 409, "level": "Advanced", "word": "Internet", "zh": "網路", "def": "網際網路", "emoji": "🌐", "sent": "I use the Internet to learn.", "sent_zh": "我用網路來學習。"}
-];
+
+        ];
 
         // ----------------------------------------------------
         // 2. Global State & Config
         // ----------------------------------------------------
         const appState = {
             currentSection: 'home-section',
-            learnFilter: { level: 'Elementary', search: '' },
+            learnFilter: { level: 'Elementary', search: '', page: 1, itemsPerPage: 24 },
             game: {
                 student: '',
                 mode: 'cloze',
-                selectedTime: null, // Start with null
+                selectedTime: null, 
                 timeLimit: 60,
                 level: 'Elementary',
                 isPlaying: false,
                 timer: null,
+                audioTimer: null, // New for delayed audio
                 timeLeft: 0,
                 score: 0,
                 combo: 0,
@@ -1683,7 +1799,8 @@ const vocabularyData =
                 lastClickTime: 0,
                 currentQWrongCount: 0,
                 questionStartTime: 0,
-                isLocked: false
+                isLocked: false,
+                currentQText: null
             }
         };
 
@@ -1692,6 +1809,11 @@ const vocabularyData =
             'Intermediate': '中級',
             'Advanced': '高級',
             'Mixed': '混合挑戰'
+        };
+
+        const SCORE_STANDARDS = {
+            'match': { 1: 15, 3: 42, 5: 65, 10: 120 },
+            'cloze': { 1: 10, 3: 25, 5: 40, 10: 70 }
         };
 
         // ----------------------------------------------------
@@ -1705,6 +1827,7 @@ const vocabularyData =
             
             document.getElementById('searchInput').addEventListener('input', (e) => {
                 appState.learnFilter.search = e.target.value.toLowerCase();
+                appState.learnFilter.page = 1; // Reset to page 1 on search
                 renderVocabulary();
             });
 
@@ -1762,13 +1885,14 @@ const vocabularyData =
 
         function resetAndGoHome() {
             clearInterval(appState.game.timer);
+            clearTimeout(appState.game.audioTimer); // Clear audio timer
             appState.game.isPlaying = false;
             appState.game.mistakes = [];
             
             document.getElementById('studentInfo').value = '';
             document.getElementById('searchInput').value = '';
             
-            appState.learnFilter = { level: 'Elementary', search: '' };
+            appState.learnFilter = { level: 'Elementary', search: '', page: 1, itemsPerPage: 24 };
             
             // Reset Time Selection
             appState.game.selectedTime = null;
@@ -1778,9 +1902,11 @@ const vocabularyData =
             
             showSection('home-section');
         }
-function playAgain() {
+
+        function playAgain() {
             // 1. 停止所有計時器 (安全起見)
             clearInterval(appState.game.timer);
+            clearTimeout(appState.game.audioTimer);
             appState.game.isPlaying = false;
 
             // 2. 重置「挑戰時間」的選擇 (變回未選取狀態)
@@ -1792,6 +1918,7 @@ function playAgain() {
             
             // (註：這裡沒有清除 studentInfo，所以學生不用重新輸入座號，體驗更好！)
         }
+
         function showSection(sectionId) {
             document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
             document.getElementById(sectionId).classList.remove('hidden');
@@ -1802,10 +1929,11 @@ function playAgain() {
         }
 
         // ----------------------------------------------------
-        // 4. Learning Feature Logic
+        // 4. Learning Feature Logic (Pagination & Catalog)
         // ----------------------------------------------------
         function filterLevel(level) {
             appState.learnFilter.level = level;
+            appState.learnFilter.page = 1; // Reset to page 1
             document.querySelectorAll('.level-btn').forEach(btn => {
                 btn.classList.toggle('tab-active', btn.dataset.level === level);
             });
@@ -1815,6 +1943,7 @@ function playAgain() {
         function renderVocabulary() {
             const grid = document.getElementById('vocab-grid');
             
+            // 1. Filter
             const filtered = vocabularyData.filter(item => {
                 const matchLevel = item.level === appState.learnFilter.level;
                 const searchStr = appState.learnFilter.search;
@@ -1822,24 +1951,37 @@ function playAgain() {
                 return matchLevel && matchSearch;
             });
 
-            if (filtered.length === 0) {
+            // 2. Pagination Logic
+            const totalItems = filtered.length;
+            const totalPages = Math.ceil(totalItems / appState.learnFilter.itemsPerPage);
+            
+            if (appState.learnFilter.page > totalPages && totalPages > 0) {
+                appState.learnFilter.page = totalPages;
+            }
+
+            const startIndex = (appState.learnFilter.page - 1) * appState.learnFilter.itemsPerPage;
+            const endIndex = startIndex + appState.learnFilter.itemsPerPage;
+            const pageItems = filtered.slice(startIndex, endIndex);
+
+            if (totalItems === 0) {
                 grid.innerHTML = `<div class="col-span-full text-center py-20 text-gray-400 text-xl">此分類下沒有單字喔！🍃</div>`;
+                document.getElementById('pagination-controls').innerHTML = '';
                 return;
             }
 
-            grid.innerHTML = filtered.map(item => {
+            // 3. Render Cards
+            grid.innerHTML = pageItems.map(item => {
                 const defHtml = (item.def && item.def !== '-') 
                     ? `<div class="text-lg text-gray-500 mt-2 font-medium">其他解釋：${item.def}</div>` 
                     : '';
 
                 return `
-                <div class="vocab-card" onclick="toggleFlip(this)">
+                <div class="vocab-card" id="card-${item.id}" onclick="toggleFlip(this)">
                     <div class="vocab-card-inner">
                         <!-- Front -->
                         <div class="vocab-front group">
                             <span class="text-8xl mb-6 transform group-hover:scale-110 transition">${item.emoji}</span>
                             <h3 class="text-4xl font-bold text-gray-700">${item.word}</h3>
-                            <!-- Fixed: Pass ID and type to avoid quote escaping issues -->
                             <button onclick="event.stopPropagation(); playTTS('${item.word.replace(/'/g, "\\'")}')" class="mt-6 w-12 h-12 rounded-full bg-blue-100 text-blue-500 hover:bg-blue-500 hover:text-white transition flex items-center justify-center text-xl">
                                 <i class="fa-solid fa-volume-high"></i>
                             </button>
@@ -1858,7 +2000,6 @@ function playAgain() {
                             </div>
                             
                              <div class="flex gap-2 justify-center mt-4 w-full">
-                                <!-- Fixed: Pass ID and type -->
                                 <button onclick="event.stopPropagation(); playTTS('${item.word.replace(/'/g, "\\'")}')" class="flex-1 py-3 bg-gray-100 rounded-xl text-gray-600 font-bold hover:bg-blue-100 text-sm">
                                     <i class="fa-solid fa-volume-high"></i> 單字
                                 </button>
@@ -1870,6 +2011,130 @@ function playAgain() {
                     </div>
                 </div>
             `}).join('');
+
+            // 4. Render Pagination
+            renderPagination(totalPages);
+        }
+
+        function renderPagination(totalPages) {
+            const controls = document.getElementById('pagination-controls');
+            if (totalPages <= 1) {
+                controls.innerHTML = '';
+                return;
+            }
+
+            let html = `
+                <button onclick="changePage(-1)" ${appState.learnFilter.page === 1 ? 'disabled' : ''} class="btn-pastel bg-white px-4 py-2 rounded-xl text-gray-600 hover:bg-gray-100 disabled:opacity-50">
+                    <i class="fa-solid fa-chevron-left"></i> 上一頁
+                </button>
+                <span class="text-gray-600 font-bold">第 ${appState.learnFilter.page} / ${totalPages} 頁</span>
+                <button onclick="changePage(1)" ${appState.learnFilter.page === totalPages ? 'disabled' : ''} class="btn-pastel bg-white px-4 py-2 rounded-xl text-gray-600 hover:bg-gray-100 disabled:opacity-50">
+                    下一頁 <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            `;
+            controls.innerHTML = html;
+        }
+
+        function changePage(delta) {
+            appState.learnFilter.page += delta;
+            renderVocabulary();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // --- Catalog Modal Logic (Enhanced) ---
+        function openCatalogModal() {
+            const modal = document.getElementById('catalog-modal');
+            const content = document.getElementById('catalog-content');
+            const alphabetBar = document.getElementById('alphabet-bar');
+            
+            // Filter current level items
+            let items = vocabularyData.filter(item => item.level === appState.learnFilter.level);
+            
+            // Sort A-Z
+            items.sort((a, b) => a.word.localeCompare(b.word));
+
+            if (items.length === 0) {
+                content.innerHTML = '<p class="text-center w-full text-gray-500 py-10">此等級無資料</p>';
+                alphabetBar.innerHTML = '';
+            } else {
+                // 1. Group items by first letter
+                const grouped = {};
+                items.forEach(item => {
+                    const letter = item.word.charAt(0).toUpperCase();
+                    if (!grouped[letter]) grouped[letter] = [];
+                    grouped[letter].push(item);
+                });
+
+                const letters = Object.keys(grouped).sort();
+
+                // 2. Generate A-Z Bar
+                alphabetBar.innerHTML = letters.map(letter => `
+                    <button class="alpha-btn" onclick="scrollToLetter('${letter}')">${letter}</button>
+                `).join('');
+
+                // 3. Generate List Content
+                content.innerHTML = letters.map(letter => `
+                    <div id="group-${letter}">
+                        <div class="catalog-group-title">--- ${letter} ---</div>
+                        <div class="catalog-grid">
+                            ${grouped[letter].map(item => `
+                                <div class="catalog-item" onclick="jumpToWord(${item.id})">
+                                    ${item.word}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            modal.style.display = 'block';
+        }
+
+        function scrollToLetter(letter) {
+            const el = document.getElementById(`group-${letter}`);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function closeCatalogModal() {
+            document.getElementById('catalog-modal').style.display = 'none';
+        }
+
+        function jumpToWord(id) {
+            closeCatalogModal();
+            
+            // 1. Find the word in the filtered list (respecting search if active)
+            const filtered = vocabularyData.filter(item => {
+                const matchLevel = item.level === appState.learnFilter.level;
+                const searchStr = appState.learnFilter.search;
+                const matchSearch = item.word.toLowerCase().includes(searchStr); 
+                return matchLevel && matchSearch;
+            });
+            
+            const index = filtered.findIndex(item => item.id === id);
+            
+            if (index !== -1) {
+                // 2. Calculate Page
+                const targetPage = Math.floor(index / appState.learnFilter.itemsPerPage) + 1;
+                appState.learnFilter.page = targetPage;
+                
+                // 3. Render
+                renderVocabulary();
+                
+                // 4. Scroll to element
+                setTimeout(() => {
+                    const el = document.getElementById(`card-${id}`);
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        // Add a temporary highlight effect
+                        el.classList.add('animate-pop');
+                        setTimeout(() => el.classList.remove('animate-pop'), 1000);
+                    }
+                }, 100);
+            } else {
+                alert("在目前的搜尋結果中找不到該單字！");
+            }
         }
 
         function toggleFlip(card) {
@@ -1883,7 +2148,7 @@ function playAgain() {
         }
 
         // ----------------------------------------------------
-        // 5. Game Logic
+        // 5. Game Logic (Updated Standards & Audio)
         // ----------------------------------------------------
         function selectMode(mode, btn) {
             appState.game.mode = mode;
@@ -1980,8 +2245,12 @@ function playAgain() {
 
         function calculateCurrentScore() {
             const timeMin = appState.game.timeLimit / 60;
-            const targets = {1: 15, 3: 42, 5: 65, 10: 120};
+            const mode = appState.game.mode;
+            
+            // Separate standards
+            const targets = SCORE_STANDARDS[mode] || SCORE_STANDARDS['cloze'];
             const target = targets[timeMin] || 15;
+            
             const weight = 75 / target;
             
             if (appState.game.totalAttempted === 0) return 0;
@@ -1993,6 +2262,9 @@ function playAgain() {
         function nextQuestion() {
             if (!appState.game.isPlaying) return;
             
+            // Clear previous audio timer
+            clearTimeout(appState.game.audioTimer);
+
             appState.game.currentQWrongCount = 0;
             appState.game.questionStartTime = Date.now();
 
@@ -2007,14 +2279,23 @@ function playAgain() {
 
             if (appState.game.mode === 'cloze') {
                 speakerBtn.style.display = 'block';
-                const regex = new RegExp(`\\b${currentQ.word}\\b`, 'gi');
+                // Enhanced Regex for case-insensitive, plural/singular, suffix handling
+                const regex = new RegExp(`\\b${currentQ.word}(?:s|es|d|ed|ing)?\\b`, 'gi');
                 const clozeSent = currentQ.sent.replace(regex, '_______');
+                
                 qCard.innerHTML = `<span class="block">${clozeSent}</span>`;
-                appState.game.currentQText = currentQ.sent; 
+                appState.game.currentQText = currentQ.sent;
+                
+                // Auto play audio after 0.8s for Cloze
+                appState.game.audioTimer = setTimeout(() => {
+                    speakQuestion();
+                }, 800);
             } else {
+                // Match Mode
                 speakerBtn.style.display = 'none'; 
                 qCard.innerHTML = `<div class="text-8xl mb-6">${currentQ.emoji}</div>${currentQ.zh}`;
-                appState.game.currentQText = null; 
+                appState.game.currentQText = currentQ.word; 
+                // No auto play for Match mode
             }
 
             let options = [currentQ];
@@ -2026,28 +2307,34 @@ function playAgain() {
                 btn.className = "w-full p-4 bg-white border-2 border-gray-200 rounded-2xl flex items-center justify-between text-2xl font-bold text-gray-600 hover:bg-blue-50 hover:border-blue-300 transition shadow-sm active:scale-95 relative group";
                 
                 const span = document.createElement('span');
+                span.innerText = opt.word;
+                btn.appendChild(span);
                 
-                if (appState.game.mode === 'cloze') {
-                    span.innerText = opt.word;
-                    btn.appendChild(span);
-                } else {
-                    span.innerText = opt.word;
-                    btn.appendChild(span);
-                    
+                // Different UI based on mode
+                if (appState.game.mode === 'match') {
+                    // Match Mode: Show Speaker Icon
                     const miniSpeak = document.createElement('div');
                     miniSpeak.className = "text-gray-300 hover:text-blue-500 p-2 z-20";
                     miniSpeak.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
                     miniSpeak.onclick = (e) => {
                         e.stopPropagation(); 
-                        playTTS(opt.word);
+                        playTTS(opt.word); // Immediate play
                     };
                     btn.appendChild(miniSpeak);
-                }
 
-                btn.onclick = (e) => {
-                     if(e.target.closest('.fa-volume-high') && appState.game.mode === 'match') return;
-                     checkAnswer(opt.id === currentQ.id, btn, currentQ);
-                };
+                    btn.onclick = (e) => {
+                          if(e.target.closest('.fa-volume-high')) return;
+                          checkAnswer(opt.id === currentQ.id, btn, currentQ);
+                    };
+                } else {
+                    // Cloze Mode: No Speaker Icon, Center Text
+                    btn.classList.add("justify-center"); // Center text if no icon
+                    
+                    btn.onclick = (e) => {
+                          playTTS(opt.word); // Play TTS first
+                          checkAnswer(opt.id === currentQ.id, btn, currentQ);
+                    };
+                }
                 
                 optionsGrid.appendChild(btn);
             });
@@ -2137,18 +2424,24 @@ function playAgain() {
 
         function endGame() {
             clearInterval(appState.game.timer);
+            clearTimeout(appState.game.audioTimer);
             appState.game.isPlaying = false;
             showResults();
         }
 
         // ----------------------------------------------------
-        // 6. Result & Review Logic
+        // 6. Result & Google Sheet Upload
         // ----------------------------------------------------
         function showResults() {
             showSection('result-section');
             
-            const targets = {60: 15, 180: 42, 300: 65, 600: 120};
-            const target = targets[appState.game.timeLimit] || 15;
+            const timeLimit = appState.game.timeLimit;
+            const timeMin = timeLimit / 60;
+            const mode = appState.game.mode;
+            
+            const targets = SCORE_STANDARDS[mode];
+            const target = targets[timeMin] || 15;
+            
             const weight = 75 / target;
             const accuracy = appState.game.totalAttempted > 0 ? (appState.game.correctCount / appState.game.totalAttempted) : 0;
             
@@ -2159,7 +2452,11 @@ function playAgain() {
             
             const displayLevel = levelMap[appState.game.level] || appState.game.level;
             
-            document.getElementById('result-info').innerText = `班級: ${appState.game.student} | 日期: ${new Date().toLocaleDateString()} | 等級: ${displayLevel}`;
+            // Format current date
+            const now = new Date();
+            const dateStr = now.getFullYear() + '/' + (now.getMonth()+1) + '/' + now.getDate() + ' ' + now.getHours() + ':' + now.getMinutes();
+
+            document.getElementById('result-info').innerText = `班級: ${appState.game.student} | 日期: ${dateStr} | 等級: ${displayLevel}`;
             document.getElementById('result-total').innerText = appState.game.totalAttempted;
             document.getElementById('result-correct').innerText = appState.game.correctCount;
             document.getElementById('result-wrong').innerText = appState.game.wrongCount;
@@ -2168,15 +2465,21 @@ function playAgain() {
             const scoreEl = document.getElementById('final-score');
             const bonusEl = document.getElementById('bonus-text');
             
+            let finalScoreDisplay = 0;
+
             if (baseScore > 100) {
+                finalScoreDisplay = 100;
                 scoreEl.innerText = "100";
                 bonusEl.innerText = `+ ${(finalScore - 100).toFixed(1)} 額外獎勵分!`;
             } else {
-                scoreEl.innerText = finalScore.toFixed(1);
+                finalScoreDisplay = finalScore.toFixed(1);
+                scoreEl.innerText = finalScoreDisplay;
                 bonusEl.innerText = comboBonus > 0 ? `(含 Combo 加分 ${comboBonus})` : "";
             }
 
+            // Render Mistakes
             const list = document.getElementById('mistakes-list');
+            let mistakesStr = "";
             if (appState.game.mistakes.length === 0) {
                 list.innerHTML = `<div class="col-span-full text-center text-green-500 text-xl font-bold py-4">太棒了！這次沒有答錯任何題目！🎉</div>`;
             } else {
@@ -2190,7 +2493,40 @@ function playAgain() {
                         <i class="fa-solid fa-chevron-right ml-auto text-red-300"></i>
                     </button>
                 `).join('');
+                mistakesStr = appState.game.mistakes.map(m => m.word).join(", ");
             }
+
+            // --- Send to Google Sheets ---
+            sendScoreToGoogleSheets({
+                date: dateStr,
+                student: appState.game.student,
+                mode: mode === 'cloze' ? '克漏字' : '配對',
+                level: displayLevel,
+                time: timeMin + '分鐘',
+                score: finalScoreDisplay,
+                correct: appState.game.correctCount,
+                wrong: appState.game.wrongCount,
+                mistakes: mistakesStr
+            });
+        }
+
+        function sendScoreToGoogleSheets(data) {
+            // Construct GET URL parameters
+            const params = new URLSearchParams(data).toString();
+            const url = `${GOOGLE_SCRIPT_URL}?${params}`;
+
+            // Use fetch 'no-cors' mode to send data without blocking on CORS errors
+            // (Note: You won't get a JSON response back, but the script will execute)
+            fetch(url, {
+                method: 'GET',
+                mode: 'no-cors'
+            })
+            .then(() => {
+                console.log("Score sent to Google Sheets");
+            })
+            .catch(err => {
+                console.error("Failed to send score", err);
+            });
         }
 
         // ----------------------------------------------------
@@ -2236,10 +2572,12 @@ function playAgain() {
         window.onclick = function(event) {
             if (event.target == modal) {
                 closeModal();
+            } else if (event.target == document.getElementById('catalog-modal')) {
+                closeCatalogModal();
             }
         }
 
-function playTTS(text) {
+        function playTTS(text) {
             if ('speechSynthesis' in window) {
                 // 1. 停止目前正在唸的聲音
                 window.speechSynthesis.cancel();
@@ -2251,23 +2589,13 @@ function playTTS(text) {
                 utterance.lang = 'en-US';
                 utterance.rate = 0.7; // 這裡可以調整速度 (0.5 ~ 1.0)
 
-                // 4. (選用) 嘗試使用更好的聲音 (Google 或 Microsoft)
-                const voices = window.speechSynthesis.getVoices();
-                // 優先找 Google 或 Microsoft 的聲音，比較自然
-                const preferredVoice = voices.find(v => 
-                    v.name.includes('Google US English') || 
-                    v.name.includes('Microsoft Zira') || 
-                    v.name.includes('Samantha')
-                );
-                
+                // 4. (選用) 嘗試使用更好的聲音
                 if (preferredVoice) {
                     utterance.voice = preferredVoice;
                 }
 
                 // 5. 開始朗讀
                 window.speechSynthesis.speak(utterance);
-            } else {
-                alert("您的瀏覽器不支援發音功能喔！");
             }
         }
 
@@ -2283,17 +2611,3 @@ function playTTS(text) {
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
