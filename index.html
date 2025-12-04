@@ -291,6 +291,7 @@
                 </button>
             </nav>
         </div>
+
     </header>
 
     <!-- Main Content -->
@@ -310,7 +311,11 @@
                         🎮 檢測單字
                     </button>
                 </div>
-            </div>
+  <div class="mt-8 text-sm text-gray-400 bg-gray-50 py-2 px-4 rounded-full inline-flex items-center gap-2 border border-gray-100">
+            <i class="fa-brands fa-chrome text-blue-400"></i>
+            <span>本網站音訊功能建議使用 <b>Chrome</b> 或 <b>Edge</b> 瀏覽器</span>
+        </div>
+          </div>
         </section>
 
         <!-- 2. Learning Section -->
@@ -448,7 +453,7 @@
                 </div>
                 
                 <div class="p-8">
-                    <!-- Score Details -->
+                    <!-- Score Details Grid Adjusted -->
                     <div class="flex flex-col md:flex-row gap-6 justify-center items-center mb-8">
                         <div class="text-center p-6 bg-yellow-50 rounded-2xl border-2 border-yellow-100 w-full md:w-1/3">
                             <div class="text-gray-500 text-sm">最終總分</div>
@@ -456,21 +461,25 @@
                             <div id="bonus-text" class="text-green-500 text-sm font-bold h-5"></div>
                         </div>
                         <div class="grid grid-cols-2 gap-4 w-full md:w-2/3">
+                            <!-- Left Top: Total -->
                             <div class="bg-gray-50 p-4 rounded-xl text-center">
                                 <div class="text-xs text-gray-400">總題數</div>
                                 <div id="result-total" class="text-2xl font-bold text-gray-600">0</div>
                             </div>
-                            <div class="bg-green-50 p-4 rounded-xl text-center">
-                                <div class="text-xs text-gray-400">答對</div>
-                                <div id="result-correct" class="text-2xl font-bold text-green-500">0</div>
-                            </div>
-                            <div class="bg-red-50 p-4 rounded-xl text-center">
-                                <div class="text-xs text-gray-400">答錯</div>
-                                <div id="result-wrong" class="text-2xl font-bold text-red-500">0</div>
-                            </div>
+                            <!-- Right Top: Max Combo -->
                             <div class="bg-blue-50 p-4 rounded-xl text-center">
                                 <div class="text-xs text-gray-400">最高 Combo</div>
                                 <div id="result-combo" class="text-2xl font-bold text-blue-500">0</div>
+                            </div>
+                            <!-- Left Bottom: Correct -->
+                            <div class="bg-green-50 p-4 rounded-xl text-center">
+                                <div class="text-xs text-gray-400">答對 (綠色)</div>
+                                <div id="result-correct" class="text-2xl font-bold text-green-500">0</div>
+                            </div>
+                            <!-- Right Bottom: Wrong -->
+                            <div class="bg-red-50 p-4 rounded-xl text-center">
+                                <div class="text-xs text-gray-400">答錯 (紅色)</div>
+                                <div id="result-wrong" class="text-2xl font-bold text-red-500">0</div>
                             </div>
                         </div>
                     </div>
@@ -494,7 +503,7 @@
 
     </main>
     
-    <!-- Modal for Word Details -->
+    <!-- Modal for Word Details (Used for Teaching Mode too) -->
     <div id="word-modal" class="modal">
         <div class="modal-content w-11/12 max-w-md mx-auto mt-20 p-0 overflow-hidden">
             <div class="bg-blue-50 p-6 text-center relative border-b border-blue-100">
@@ -556,7 +565,7 @@
         </div>
     </div>
 
-    <!-- Lock Screen Overlay -->
+    <!-- Lock Screen Overlay (Legacy, kept just in case but used less) -->
     <div id="lock-overlay">
         <div class="text-6xl mb-4">🔒</div>
         <div class="font-bold">冷靜一下！</div>
@@ -570,6 +579,7 @@
         // ----------------------------------------------------
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw0MTm4MhMyCLFXJ1eEQ0CBJgsc59HYVC2bpKoNYEjKtiolwg9sfo92K8tSleC9tKfI/exec';
 
+        // 模擬 20+ 筆資料
         const vocabularyData = [
   {"id": 1, "level": "Elementary", "word": "a", "zh": "一個", "def": "-", "emoji": "", "sent": "I have a red pen.", "sent_zh": "我有一枝紅色的筆。"},
   {"id": 2, "level": "Elementary", "word": "about", "zh": "關於", "def": "大約; 四處", "emoji": "ℹ️", "sent": "It is about five o'clock.", "sent_zh": "現在大約是五點鐘。"},
@@ -1785,14 +1795,14 @@
                 level: 'Elementary',
                 isPlaying: false,
                 timer: null,
-                audioTimer: null, // New for delayed audio
+                audioTimer: null, 
                 timeLeft: 0,
                 score: 0,
                 combo: 0,
                 maxCombo: 0,
-                correctCount: 0,
-                wrongCount: 0,
-                totalAttempted: 0,
+                correctCount: 0, // Count of "First Try Correct"
+                wrongQuestionIds: new Set(), // Set of question IDs that were ever answered incorrectly
+                totalAttempted: 0, 
                 questions: [],
                 currentQuestionIndex: 0,
                 mistakes: [],
@@ -1800,7 +1810,8 @@
                 currentQWrongCount: 0,
                 questionStartTime: 0,
                 isLocked: false,
-                currentQText: null
+                currentQText: null,
+                isTeachingMode: false
             }
         };
 
@@ -1827,13 +1838,12 @@
             
             document.getElementById('searchInput').addEventListener('input', (e) => {
                 appState.learnFilter.search = e.target.value.toLowerCase();
-                appState.learnFilter.page = 1; // Reset to page 1 on search
+                appState.learnFilter.page = 1; 
                 renderVocabulary();
             });
 
             window.addEventListener('scroll', handleSmartHeader);
 
-            // Init Voices
             if ('speechSynthesis' in window) {
                 speechSynthesis.onvoiceschanged = loadVoices;
                 loadVoices();
@@ -1859,7 +1869,6 @@
             const header = document.getElementById('main-header');
             const filterBar = document.getElementById('learn-filters');
             
-            // Threshold to avoid jitter at very top
             if (currentScrollY < 50) {
                  header.style.transform = 'translateY(0)';
                  if(filterBar) filterBar.style.transform = 'translateY(0)';
@@ -1867,73 +1876,54 @@
             }
 
             if (currentScrollY > lastScrollY) {
-                // Scrolling Down -> Hide Everything
                 header.style.transform = 'translateY(-100%)'; 
-                if (filterBar) {
-                    // Move filter bar up out of view (200% handles header height + its own)
-                    filterBar.style.transform = 'translateY(-200%)'; 
-                }
+                if (filterBar) filterBar.style.transform = 'translateY(-200%)'; 
             } else {
-                // Scrolling Up -> Show Everything
                 header.style.transform = 'translateY(0)';
-                if (filterBar) {
-                     filterBar.style.transform = 'translateY(0)';
-                }
+                if (filterBar) filterBar.style.transform = 'translateY(0)';
             }
             lastScrollY = currentScrollY;
         }
 
         function resetAndGoHome() {
             clearInterval(appState.game.timer);
-            clearTimeout(appState.game.audioTimer); // Clear audio timer
+            clearTimeout(appState.game.audioTimer);
             appState.game.isPlaying = false;
             appState.game.mistakes = [];
+            appState.game.wrongQuestionIds = new Set();
             
             document.getElementById('studentInfo').value = '';
             document.getElementById('searchInput').value = '';
             
             appState.learnFilter = { level: 'Elementary', search: '', page: 1, itemsPerPage: 24 };
-            
-            // Reset Time Selection
             appState.game.selectedTime = null;
             updateTimeSelectionUI();
 
             filterLevel('Elementary'); 
-            
             showSection('home-section');
         }
 
         function playAgain() {
-            // 1. 停止所有計時器 (安全起見)
             clearInterval(appState.game.timer);
             clearTimeout(appState.game.audioTimer);
             appState.game.isPlaying = false;
-
-            // 2. 重置「挑戰時間」的選擇 (變回未選取狀態)
             appState.game.selectedTime = null;
             updateTimeSelectionUI();
-
-            // 3. 切換畫面到「遊戲設定」頁
             showSection('game-setup-section');
-            
-            // (註：這裡沒有清除 studentInfo，所以學生不用重新輸入座號，體驗更好！)
         }
 
         function showSection(sectionId) {
             document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
             document.getElementById(sectionId).classList.remove('hidden');
-            
-            if (sectionId === 'learn-section') {
-                renderVocabulary();
-            }
+            if (sectionId === 'learn-section') renderVocabulary();
         }
 
         // ----------------------------------------------------
-        // 4. Learning Feature Logic (Pagination & Catalog)
+        // 4. Learning Feature Logic
         // ----------------------------------------------------
         function filterLevel(level) {
             appState.learnFilter.level = level;
-            appState.learnFilter.page = 1; // Reset to page 1
+            appState.learnFilter.page = 1; 
             document.querySelectorAll('.level-btn').forEach(btn => {
                 btn.classList.toggle('tab-active', btn.dataset.level === level);
             });
@@ -1942,8 +1932,6 @@
 
         function renderVocabulary() {
             const grid = document.getElementById('vocab-grid');
-            
-            // 1. Filter
             const filtered = vocabularyData.filter(item => {
                 const matchLevel = item.level === appState.learnFilter.level;
                 const searchStr = appState.learnFilter.search;
@@ -1951,7 +1939,6 @@
                 return matchLevel && matchSearch;
             });
 
-            // 2. Pagination Logic
             const totalItems = filtered.length;
             const totalPages = Math.ceil(totalItems / appState.learnFilter.itemsPerPage);
             
@@ -1969,7 +1956,6 @@
                 return;
             }
 
-            // 3. Render Cards
             grid.innerHTML = pageItems.map(item => {
                 const defHtml = (item.def && item.def !== '-') 
                     ? `<div class="text-lg text-gray-500 mt-2 font-medium">其他解釋：${item.def}</div>` 
@@ -1978,7 +1964,6 @@
                 return `
                 <div class="vocab-card" id="card-${item.id}" onclick="toggleFlip(this)">
                     <div class="vocab-card-inner">
-                        <!-- Front -->
                         <div class="vocab-front group">
                             <span class="text-8xl mb-6 transform group-hover:scale-110 transition">${item.emoji}</span>
                             <h3 class="text-4xl font-bold text-gray-700">${item.word}</h3>
@@ -1986,19 +1971,16 @@
                                 <i class="fa-solid fa-volume-high"></i>
                             </button>
                         </div>
-                        <!-- Back -->
                         <div class="vocab-back flex flex-col justify-center items-center py-4">
                             <div class="mb-4">
                                 <h3 class="text-3xl font-bold text-gray-800 mb-1">${item.word}</h3>
                                 <p class="text-4xl text-pink-500 font-bold">${item.zh}</p>
                                 ${defHtml}
                             </div>
-                            
                             <div class="bg-white p-4 rounded-xl w-full text-left shadow-sm border border-gray-100">
                                 <p class="text-blue-600 mb-1 font-semibold text-xl leading-snug">${item.sent}</p>
                                 <p class="text-gray-400 text-base">${item.sent_zh}</p>
                             </div>
-                            
                              <div class="flex gap-2 justify-center mt-4 w-full">
                                 <button onclick="event.stopPropagation(); playTTS('${item.word.replace(/'/g, "\\'")}')" class="flex-1 py-3 bg-gray-100 rounded-xl text-gray-600 font-bold hover:bg-blue-100 text-sm">
                                     <i class="fa-solid fa-volume-high"></i> 單字
@@ -2012,7 +1994,6 @@
                 </div>
             `}).join('');
 
-            // 4. Render Pagination
             renderPagination(totalPages);
         }
 
@@ -2041,23 +2022,18 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // --- Catalog Modal Logic (Enhanced) ---
         function openCatalogModal() {
             const modal = document.getElementById('catalog-modal');
             const content = document.getElementById('catalog-content');
             const alphabetBar = document.getElementById('alphabet-bar');
             
-            // Filter current level items
             let items = vocabularyData.filter(item => item.level === appState.learnFilter.level);
-            
-            // Sort A-Z
             items.sort((a, b) => a.word.localeCompare(b.word));
 
             if (items.length === 0) {
                 content.innerHTML = '<p class="text-center w-full text-gray-500 py-10">此等級無資料</p>';
                 alphabetBar.innerHTML = '';
             } else {
-                // 1. Group items by first letter
                 const grouped = {};
                 items.forEach(item => {
                     const letter = item.word.charAt(0).toUpperCase();
@@ -2067,12 +2043,10 @@
 
                 const letters = Object.keys(grouped).sort();
 
-                // 2. Generate A-Z Bar
                 alphabetBar.innerHTML = letters.map(letter => `
                     <button class="alpha-btn" onclick="scrollToLetter('${letter}')">${letter}</button>
                 `).join('');
 
-                // 3. Generate List Content
                 content.innerHTML = letters.map(letter => `
                     <div id="group-${letter}">
                         <div class="catalog-group-title">--- ${letter} ---</div>
@@ -2103,8 +2077,6 @@
 
         function jumpToWord(id) {
             closeCatalogModal();
-            
-            // 1. Find the word in the filtered list (respecting search if active)
             const filtered = vocabularyData.filter(item => {
                 const matchLevel = item.level === appState.learnFilter.level;
                 const searchStr = appState.learnFilter.search;
@@ -2115,19 +2087,13 @@
             const index = filtered.findIndex(item => item.id === id);
             
             if (index !== -1) {
-                // 2. Calculate Page
                 const targetPage = Math.floor(index / appState.learnFilter.itemsPerPage) + 1;
                 appState.learnFilter.page = targetPage;
-                
-                // 3. Render
                 renderVocabulary();
-                
-                // 4. Scroll to element
                 setTimeout(() => {
                     const el = document.getElementById(`card-${id}`);
                     if (el) {
                         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        // Add a temporary highlight effect
                         el.classList.add('animate-pop');
                         setTimeout(() => el.classList.remove('animate-pop'), 1000);
                     }
@@ -2148,13 +2114,12 @@
         }
 
         // ----------------------------------------------------
-        // 5. Game Logic (Updated Standards & Audio)
+        // 5. Game Logic
         // ----------------------------------------------------
         function selectMode(mode, btn) {
             appState.game.mode = mode;
             document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('tab-active', 'bg-blue-100', 'text-blue-600'));
             document.querySelectorAll('.mode-btn').forEach(b => b.classList.add('bg-gray-100', 'text-gray-500'));
-            
             btn.classList.remove('bg-gray-100', 'text-gray-500');
             btn.classList.add('tab-active', 'bg-blue-100', 'text-blue-600');
         }
@@ -2175,15 +2140,8 @@
 
         function startGame() {
             const student = document.getElementById('studentInfo').value.trim();
-            if (!student) {
-                alert("請輸入班級座號喔！");
-                return;
-            }
-
-            if (!appState.game.selectedTime) {
-                alert("請選擇挑戰時間！");
-                return;
-            }
+            if (!student) { alert("請輸入班級座號喔！"); return; }
+            if (!appState.game.selectedTime) { alert("請選擇挑戰時間！"); return; }
 
             const timeMin = appState.game.selectedTime;
             const level = document.getElementById('gameLevel').value;
@@ -2197,21 +2155,20 @@
             appState.game.maxCombo = 0;
             appState.game.correctCount = 0;
             appState.game.wrongCount = 0;
-            appState.game.totalAttempted = 0;
+            appState.game.wrongQuestionIds = new Set();
+            appState.game.questions = [];
             appState.game.mistakes = [];
             appState.game.isPlaying = true;
             appState.game.isLocked = false;
             appState.game.currentQWrongCount = 0; 
+            appState.game.isTeachingMode = false;
             
             let pool = vocabularyData;
             if (level !== 'Mixed') {
                 pool = vocabularyData.filter(i => i.level === level);
             }
             
-            if (pool.length === 0) {
-                 alert("此等級目前沒有資料！");
-                 return;
-            }
+            if (pool.length === 0) { alert("此等級目前沒有資料！"); return; }
             
             appState.game.questions = pool.sort(() => 0.5 - Math.random());
             appState.game.currentQuestionIndex = 0;
@@ -2225,12 +2182,10 @@
         }
 
         function gameLoop() {
+            if (appState.game.isTeachingMode) return;
             appState.game.timeLeft--;
             updateDashBoard();
-            
-            if (appState.game.timeLeft <= 0) {
-                endGame();
-            }
+            if (appState.game.timeLeft <= 0) endGame();
         }
 
         function updateDashBoard() {
@@ -2246,23 +2201,20 @@
         function calculateCurrentScore() {
             const timeMin = appState.game.timeLimit / 60;
             const mode = appState.game.mode;
-            
-            // Separate standards
             const targets = SCORE_STANDARDS[mode] || SCORE_STANDARDS['cloze'];
             const target = targets[timeMin] || 15;
-            
             const weight = 75 / target;
             
-            if (appState.game.totalAttempted === 0) return 0;
+            // Total attempted logic: Corrects + Wrong Questions (Unique)
+            const total = appState.game.correctCount + appState.game.wrongQuestionIds.size;
+            if (total === 0) return 0;
 
-            let baseScore = (appState.game.correctCount * weight) * (appState.game.correctCount / appState.game.totalAttempted);
+            let baseScore = (appState.game.correctCount * weight) * (appState.game.correctCount / total);
             return appState.game.score + baseScore; 
         }
 
         function nextQuestion() {
             if (!appState.game.isPlaying) return;
-            
-            // Clear previous audio timer
             clearTimeout(appState.game.audioTimer);
 
             appState.game.currentQWrongCount = 0;
@@ -2279,23 +2231,22 @@
 
             if (appState.game.mode === 'cloze') {
                 speakerBtn.style.display = 'block';
-                // Enhanced Regex for case-insensitive, plural/singular, suffix handling
                 const regex = new RegExp(`\\b${currentQ.word}(?:s|es|d|ed|ing)?\\b`, 'gi');
                 const clozeSent = currentQ.sent.replace(regex, '_______');
-                
                 qCard.innerHTML = `<span class="block">${clozeSent}</span>`;
                 appState.game.currentQText = currentQ.sent;
                 
-                // Auto play audio after 0.8s for Cloze
                 appState.game.audioTimer = setTimeout(() => {
-                    speakQuestion();
+                    if(!appState.game.isTeachingMode) speakQuestion();
                 }, 800);
             } else {
-                // Match Mode
+                // Match Mode: Immediate Audio
                 speakerBtn.style.display = 'none'; 
                 qCard.innerHTML = `<div class="text-8xl mb-6">${currentQ.emoji}</div>${currentQ.zh}`;
                 appState.game.currentQText = currentQ.word; 
-                // No auto play for Match mode
+                
+                // Play immediately for Match Mode
+                playTTS(currentQ.word);
             }
 
             let options = [currentQ];
@@ -2304,53 +2255,54 @@
 
             options.forEach(opt => {
                 const btn = document.createElement('button');
-                btn.className = "w-full p-4 bg-white border-2 border-gray-200 rounded-2xl flex items-center justify-between text-2xl font-bold text-gray-600 hover:bg-blue-50 hover:border-blue-300 transition shadow-sm active:scale-95 relative group";
+                // Added 'justify-center' to center text as icons are removed
+                btn.className = "w-full p-4 bg-white border-2 border-gray-200 rounded-2xl flex items-center justify-center text-2xl font-bold text-gray-600 hover:bg-blue-50 hover:border-blue-300 transition shadow-sm active:scale-95 relative group";
                 
                 const span = document.createElement('span');
                 span.innerText = opt.word;
                 btn.appendChild(span);
                 
-                // Different UI based on mode
-                if (appState.game.mode === 'match') {
-                    // Match Mode: Show Speaker Icon
-                    const miniSpeak = document.createElement('div');
-                    miniSpeak.className = "text-gray-300 hover:text-blue-500 p-2 z-20";
-                    miniSpeak.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
-                    miniSpeak.onclick = (e) => {
-                        e.stopPropagation(); 
-                        playTTS(opt.word); // Immediate play
-                    };
-                    btn.appendChild(miniSpeak);
+                // Unified logic: Play TTS then Check
+                btn.onclick = (e) => {
+                      if (document.activeElement) document.activeElement.blur();
+                      
+                      let teachingNeeded = false;
+                      const isCorrect = (opt.id === currentQ.id);
+                      
+                      // Pre-calculate if teaching mode will be triggered
+                      if (!isCorrect && !appState.game.isLocked && !appState.game.isTeachingMode) {
+                          if (appState.game.currentQWrongCount + 1 >= 2) {
+                              teachingNeeded = true;
+                          }
+                      }
 
-                    btn.onclick = (e) => {
-                          if(e.target.closest('.fa-volume-high')) return;
-                          checkAnswer(opt.id === currentQ.id, btn, currentQ);
-                    };
-                } else {
-                    // Cloze Mode: No Speaker Icon, Center Text
-                    btn.classList.add("justify-center"); // Center text if no icon
-                    
-                    btn.onclick = (e) => {
-                          playTTS(opt.word); // Play TTS first
-                          checkAnswer(opt.id === currentQ.id, btn, currentQ);
-                    };
-                }
+                      // Play TTS with callback
+                      playTTS(opt.word, () => {
+                          if (teachingNeeded) {
+                              triggerTeachingMode(currentQ);
+                          }
+                      });
+                      
+                      // Execute game logic immediately (UI updates etc)
+                      checkAnswer(isCorrect, btn, currentQ);
+                };
                 
                 optionsGrid.appendChild(btn);
             });
         }
 
         function checkAnswer(isCorrect, btnElement, questionObj) {
-            if (appState.game.isLocked) return;
-
+            if (appState.game.isLocked || appState.game.isTeachingMode) return;
+            
             if (isCorrect) {
-                appState.game.totalAttempted++;
+                // Scoring: Only first try counts as 'Correct'
+                if (appState.game.currentQWrongCount === 0) {
+                    appState.game.correctCount++;
+                } 
+                
                 btnElement.classList.remove('bg-white', 'border-gray-200');
                 btnElement.classList.add('bg-green-400', 'border-green-600', 'text-white');
-                const icons = btnElement.querySelectorAll('i');
-                icons.forEach(i => i.classList.remove('text-gray-300'));
                 
-                appState.game.correctCount++;
                 appState.game.combo++;
                 if (appState.game.combo > appState.game.maxCombo) appState.game.maxCombo = appState.game.combo;
 
@@ -2376,8 +2328,8 @@
                 setTimeout(nextQuestion, 800);
 
             } else {
-                appState.game.wrongCount++; 
                 appState.game.currentQWrongCount++; 
+                appState.game.wrongQuestionIds.add(questionObj.id); // Mark unique wrong ID
                 
                 btnElement.classList.remove('bg-white', 'border-gray-200');
                 btnElement.classList.add('bg-red-400', 'border-red-600', 'text-white');
@@ -2390,12 +2342,19 @@
                 }
 
                 triggerFeedback("Oops! (-2)", "text-red-500");
-
-                if (appState.game.currentQWrongCount >= 2) {
-                    lockGame();
-                }
+                
+                // Note: Teaching Mode triggering logic is now handled in btn.onclick callback
+                // to ensure audio plays first.
             }
             updateDashBoard();
+        }
+
+        function triggerTeachingMode(questionObj) {
+            appState.game.isTeachingMode = true;
+            clearInterval(appState.game.timer); // Pause Game Timer
+            
+            // Open Modal (which triggers TTS now)
+            openModalById(questionObj.id);
         }
 
         function triggerFeedback(text, colorClass) {
@@ -2404,22 +2363,7 @@
             el.className = `feedback-item text-5xl md:text-6xl ${colorClass}`;
             el.innerText = text;
             container.appendChild(el);
-            
-            setTimeout(() => {
-                el.remove();
-            }, 1200);
-        }
-
-        function lockGame() {
-            appState.game.isLocked = true;
-            const overlay = document.getElementById('lock-overlay');
-            overlay.style.display = 'flex';
-            
-            setTimeout(() => {
-                overlay.style.display = 'none';
-                appState.game.isLocked = false;
-                appState.game.currentQWrongCount = 0; 
-            }, 3000);
+            setTimeout(() => el.remove(), 1200);
         }
 
         function endGame() {
@@ -2429,9 +2373,6 @@
             showResults();
         }
 
-        // ----------------------------------------------------
-        // 6. Result & Google Sheet Upload
-        // ----------------------------------------------------
         function showResults() {
             showSection('result-section');
             
@@ -2442,24 +2383,32 @@
             const targets = SCORE_STANDARDS[mode];
             const target = targets[timeMin] || 15;
             
-            const weight = 75 / target;
-            const accuracy = appState.game.totalAttempted > 0 ? (appState.game.correctCount / appState.game.totalAttempted) : 0;
+            const correctCount = appState.game.correctCount;
+            const wrongCount = appState.game.wrongQuestionIds.size;
+            const totalQuestions = correctCount + wrongCount;
             
-            let baseScore = (appState.game.correctCount * weight) * accuracy;
+            const weight = 75 / target;
+            // Accuracy: based on questions answered perfectly vs total questions seen
+            const accuracy = totalQuestions > 0 ? (correctCount / totalQuestions) : 0;
+            
+            let baseScore = (correctCount * weight) * accuracy;
             let comboBonus = appState.game.score; 
             
             let finalScore = baseScore + comboBonus;
             
             const displayLevel = levelMap[appState.game.level] || appState.game.level;
-            
-            // Format current date
             const now = new Date();
             const dateStr = now.getFullYear() + '/' + (now.getMonth()+1) + '/' + now.getDate() + ' ' + now.getHours() + ':' + now.getMinutes();
 
-            document.getElementById('result-info').innerText = `班級: ${appState.game.student} | 日期: ${dateStr} | 等級: ${displayLevel}`;
-            document.getElementById('result-total').innerText = appState.game.totalAttempted;
-            document.getElementById('result-correct').innerText = appState.game.correctCount;
-            document.getElementById('result-wrong').innerText = appState.game.wrongCount;
+            const modeCN = appState.game.mode === 'cloze' ? '克漏字' : '配對';
+            const timeCN = Math.floor(appState.game.timeLimit / 60) + '分鐘';
+
+            document.getElementById('result-info').innerText = 
+                `班級: ${appState.game.student} | 日期: ${dateStr} | 挑戰模式: ${modeCN} | 挑戰等級: ${displayLevel} | 挑戰時間: ${timeCN}`;
+            
+            document.getElementById('result-total').innerText = totalQuestions;
+            document.getElementById('result-correct').innerText = correctCount;
+            document.getElementById('result-wrong').innerText = wrongCount;
             document.getElementById('result-combo').innerText = appState.game.maxCombo;
 
             const scoreEl = document.getElementById('final-score');
@@ -2477,7 +2426,6 @@
                 bonusEl.innerText = comboBonus > 0 ? `(含 Combo 加分 ${comboBonus})` : "";
             }
 
-            // Render Mistakes
             const list = document.getElementById('mistakes-list');
             let mistakesStr = "";
             if (appState.game.mistakes.length === 0) {
@@ -2496,7 +2444,6 @@
                 mistakesStr = appState.game.mistakes.map(m => m.word).join(", ");
             }
 
-            // --- Send to Google Sheets ---
             sendScoreToGoogleSheets({
                 date: dateStr,
                 student: appState.game.student,
@@ -2504,29 +2451,18 @@
                 level: displayLevel,
                 time: timeMin + '分鐘',
                 score: finalScoreDisplay,
-                correct: appState.game.correctCount,
-                wrong: appState.game.wrongCount,
+                correct: correctCount,
+                wrong: wrongCount,
                 mistakes: mistakesStr
             });
         }
 
         function sendScoreToGoogleSheets(data) {
-            // Construct GET URL parameters
             const params = new URLSearchParams(data).toString();
             const url = `${GOOGLE_SCRIPT_URL}?${params}`;
-
-            // Use fetch 'no-cors' mode to send data without blocking on CORS errors
-            // (Note: You won't get a JSON response back, but the script will execute)
-            fetch(url, {
-                method: 'GET',
-                mode: 'no-cors'
-            })
-            .then(() => {
-                console.log("Score sent to Google Sheets");
-            })
-            .catch(err => {
-                console.error("Failed to send score", err);
-            });
+            fetch(url, { method: 'GET', mode: 'no-cors' })
+            .then(() => console.log("Score sent"))
+            .catch(err => console.error("Failed to send score", err));
         }
 
         // ----------------------------------------------------
@@ -2563,10 +2499,47 @@
             currentModalSent = item.sent;
 
             modal.style.display = 'block';
+
+            // Auto Play Sequence
+            playTTSSequence(item.word, item.sent);
+        }
+
+        function playTTSSequence(word, sent) {
+             if (!('speechSynthesis' in window)) return;
+             
+             window.speechSynthesis.cancel();
+
+             const wordUtterance = new SpeechSynthesisUtterance(word);
+             wordUtterance.lang = 'en-US';
+             wordUtterance.rate = 0.7;
+             if (preferredVoice) wordUtterance.voice = preferredVoice;
+
+             const sentUtterance = new SpeechSynthesisUtterance(sent);
+             sentUtterance.lang = 'en-US';
+             sentUtterance.rate = 0.7;
+             if (preferredVoice) sentUtterance.voice = preferredVoice;
+
+             wordUtterance.onend = function() {
+                 // Check if modal is still open to avoid playing if closed quickly
+                 if (document.getElementById('word-modal').style.display === 'none') return;
+                 setTimeout(() => {
+                     if (document.getElementById('word-modal').style.display === 'none') return;
+                     window.speechSynthesis.speak(sentUtterance);
+                 }, 300);
+             };
+
+             window.speechSynthesis.speak(wordUtterance);
         }
 
         function closeModal() {
+            window.speechSynthesis.cancel(); // Stop sound immediately
             modal.style.display = 'none';
+
+            if (appState.game.isTeachingMode) {
+                appState.game.isTeachingMode = false;
+                appState.game.isLocked = false; // unlock
+                appState.game.timer = setInterval(gameLoop, 1000); // resume
+            }
         }
         
         window.onclick = function(event) {
@@ -2577,25 +2550,21 @@
             }
         }
 
-        function playTTS(text) {
+        function playTTS(text, onEndCallback) {
             if ('speechSynthesis' in window) {
-                // 1. 停止目前正在唸的聲音
                 window.speechSynthesis.cancel();
-
-                // 2. 建立新的發音物件
                 const utterance = new SpeechSynthesisUtterance(text);
-                
-                // 3. 設定語言與速度
                 utterance.lang = 'en-US';
-                utterance.rate = 0.7; // 這裡可以調整速度 (0.5 ~ 1.0)
-
-                // 4. (選用) 嘗試使用更好的聲音
-                if (preferredVoice) {
-                    utterance.voice = preferredVoice;
+                utterance.rate = 0.7; 
+                if (preferredVoice) utterance.voice = preferredVoice;
+                
+                if (onEndCallback) {
+                    utterance.onend = onEndCallback;
                 }
-
-                // 5. 開始朗讀
+                
                 window.speechSynthesis.speak(utterance);
+            } else {
+                if (onEndCallback) onEndCallback();
             }
         }
 
