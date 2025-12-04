@@ -2215,75 +2215,100 @@
 
 function nextQuestion() {
             if (!appState.game.isPlaying) return;
+            
+            // 清除上一題的計時器與狀態
             clearTimeout(appState.game.audioTimer);
-
             appState.game.currentQWrongCount = 0;
             appState.game.questionStartTime = Date.now();
 
+            // 取得下一題資料
             const qIndex = appState.game.currentQuestionIndex % appState.game.questions.length;
             const currentQ = appState.game.questions[qIndex];
             appState.game.currentQuestionIndex++;
 
+            // 取得 DOM 元素
             const qCard = document.getElementById('question-content');
             const optionsGrid = document.getElementById('options-grid');
             const speakerBtn = document.getElementById('question-speaker');
             optionsGrid.innerHTML = ''; 
 
+            // --- 判斷遊戲模式 ---
             if (appState.game.mode === 'cloze') {
-                // --- 克漏字模式修改 ---
-                
-                // 1. 顯示喇叭 (原本就有)
+                // 【克漏字模式】
                 speakerBtn.style.display = 'block';
                 
-                // 2. 處理挖空邏輯
-                const regex = new RegExp(`\\b${currentQ.word}(?:s|es|d|ed|ing)?\\b`, 'gi');
+                // 1. 處理特殊符號 (避免 . ? ! 等符號導致程式報錯)
+                const safeWord = currentQ.word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+                let regex;
+                // 2. 智慧判斷：如果是縮寫字(有點)，或是普通單字
+                if (currentQ.word.includes('.')) {
+                    // 針對 Mr., a.m. 等縮寫：不使用 \b 邊界，直接比對
+                    regex = new RegExp(safeWord, 'gi');
+                } else {
+                    // 一般單字：加上邊界，並允許常見字尾 (s, es, d, ed, ing)
+                    // 這樣 apple 也可以挖空 apples
+                    regex = new RegExp(`\\b${safeWord}(?:s|es|d|ed|ing)?\\b`, 'gi');
+                }
+
+                // 3. 執行挖空取代
                 const clozeSent = currentQ.sent.replace(regex, '_______');
                 
-                // 3. [新增] 顯示英文挖空句 + 中文翻譯
+                // 4. 顯示題目 (英文挖空 + 中文翻譯)
                 qCard.innerHTML = `
-                    <span class="block mb-3">${clozeSent}</span>
+                    <span class="block mb-3" style="line-height: 1.4;">${clozeSent}</span>
                     <span class="block text-2xl text-gray-400 font-medium">${currentQ.sent_zh}</span>
                 `;
                 
-                // 設定發音內容為例句
-                appState.game.currentQText = currentQ.sent;
-                
-                // 延遲自動朗讀
+                // 設定發音內容
+                appState.game.currentQText = currentQ.sent; 
+
+                // 延遲自動朗讀例句 (0.8秒後)
                 appState.game.audioTimer = setTimeout(() => {
-                    if(!appState.game.isTeachingMode) speakQuestion();
+                    // 只有在非教學模式下才自動唸
+                    if(!appState.game.isTeachingMode && !appState.game.isLocked) {
+                        speakQuestion();
+                    }
                 }, 800);
 
             } else {
-                // --- 配對遊戲模式修改 ---
-
-                // 1. [修改] 讓喇叭顯示出來 (原本是 none)
-                speakerBtn.style.display = 'block'; 
+                // 【配對遊戲模式】
+                speakerBtn.style.display = 'block'; // 顯示喇叭讓學生可以重聽
                 
-                // 2. 顯示 Emoji + 中文
+                // 顯示 Emoji + 中文題目
                 qCard.innerHTML = `<div class="text-8xl mb-6">${currentQ.emoji}</div>${currentQ.zh}`;
                 
-                // 設定發音內容為英文單字 (這樣按喇叭就會唸單字)
+                // 設定發音內容為「英文單字」
                 appState.game.currentQText = currentQ.word; 
                 
                 // 立即朗讀單字
                 playTTS(currentQ.word);
             }
 
+            // --- 產生選項 (Options) ---
             let options = [currentQ];
+            // 隨機抓 3 個錯誤選項
             let distractors = vocabularyData.filter(i => i.id !== currentQ.id).sort(() => 0.5 - Math.random()).slice(0, 3);
             options = [...options, ...distractors].sort(() => 0.5 - Math.random());
 
             options.forEach(opt => {
                 const btn = document.createElement('button');
+                // 按鈕樣式
                 btn.className = "w-full p-4 bg-white border-2 border-gray-200 rounded-2xl flex items-center justify-center text-2xl font-bold text-gray-600 hover:bg-blue-50 hover:border-blue-300 transition shadow-sm active:scale-95 relative group";
                 
                 const span = document.createElement('span');
                 span.innerText = opt.word;
                 btn.appendChild(span);
                 
+                // 點擊事件：先唸 -> 再檢查
                 btn.onclick = (e) => {
-                      playTTS(opt.word); 
-                      checkAnswer(opt.id === currentQ.id, btn, currentQ);
+                     // 防止連點
+                     if(appState.game.isLocked) return;
+                     
+                     // 唸出選項
+                     playTTS(opt.word); 
+                     // 檢查答案
+                     checkAnswer(opt.id === currentQ.id, btn, currentQ);
                 };
                 
                 optionsGrid.appendChild(btn);
@@ -2579,4 +2604,5 @@ function nextQuestion() {
     </script>
 </body>
 </html>
+
 
