@@ -360,7 +360,7 @@
                 <div class="space-y-6">
                     <div>
                         <label class="block text-gray-600 font-bold mb-2">班級座號</label>
-                        <input type="text" id="studentInfo" placeholder="70105" class="w-full p-4 rounded-xl border-2 border-gray-200 focus:border-pink-300 outline-none text-2xl text-center tracking-widest bg-gray-50 font-mono">
+                        <input type="text" id="studentInfo" placeholder="70105(共5個數字)" class="w-full p-4 rounded-xl border-2 border-gray-200 focus:border-pink-300 outline-none text-2xl text-center tracking-widest bg-gray-50 font-mono">
                     </div>
 
                     <div>
@@ -2213,7 +2213,7 @@
             return appState.game.score + baseScore; 
         }
 
-        function nextQuestion() {
+function nextQuestion() {
             if (!appState.game.isPlaying) return;
             clearTimeout(appState.game.audioTimer);
 
@@ -2230,22 +2230,42 @@
             optionsGrid.innerHTML = ''; 
 
             if (appState.game.mode === 'cloze') {
+                // --- 克漏字模式修改 ---
+                
+                // 1. 顯示喇叭 (原本就有)
                 speakerBtn.style.display = 'block';
+                
+                // 2. 處理挖空邏輯
                 const regex = new RegExp(`\\b${currentQ.word}(?:s|es|d|ed|ing)?\\b`, 'gi');
                 const clozeSent = currentQ.sent.replace(regex, '_______');
-                qCard.innerHTML = `<span class="block">${clozeSent}</span>`;
+                
+                // 3. [新增] 顯示英文挖空句 + 中文翻譯
+                qCard.innerHTML = `
+                    <span class="block mb-3">${clozeSent}</span>
+                    <span class="block text-2xl text-gray-400 font-medium">${currentQ.sent_zh}</span>
+                `;
+                
+                // 設定發音內容為例句
                 appState.game.currentQText = currentQ.sent;
                 
+                // 延遲自動朗讀
                 appState.game.audioTimer = setTimeout(() => {
                     if(!appState.game.isTeachingMode) speakQuestion();
                 }, 800);
+
             } else {
-                // Match Mode: Immediate Audio
-                speakerBtn.style.display = 'none'; 
+                // --- 配對遊戲模式修改 ---
+
+                // 1. [修改] 讓喇叭顯示出來 (原本是 none)
+                speakerBtn.style.display = 'block'; 
+                
+                // 2. 顯示 Emoji + 中文
                 qCard.innerHTML = `<div class="text-8xl mb-6">${currentQ.emoji}</div>${currentQ.zh}`;
+                
+                // 設定發音內容為英文單字 (這樣按喇叭就會唸單字)
                 appState.game.currentQText = currentQ.word; 
                 
-                // Play immediately for Match Mode
+                // 立即朗讀單字
                 playTTS(currentQ.word);
             }
 
@@ -2255,36 +2275,15 @@
 
             options.forEach(opt => {
                 const btn = document.createElement('button');
-                // Added 'justify-center' to center text as icons are removed
                 btn.className = "w-full p-4 bg-white border-2 border-gray-200 rounded-2xl flex items-center justify-center text-2xl font-bold text-gray-600 hover:bg-blue-50 hover:border-blue-300 transition shadow-sm active:scale-95 relative group";
                 
                 const span = document.createElement('span');
                 span.innerText = opt.word;
                 btn.appendChild(span);
                 
-                // Unified logic: Play TTS then Check
                 btn.onclick = (e) => {
-                      if (document.activeElement) document.activeElement.blur();
-                      
-                      let teachingNeeded = false;
-                      const isCorrect = (opt.id === currentQ.id);
-                      
-                      // Pre-calculate if teaching mode will be triggered
-                      if (!isCorrect && !appState.game.isLocked && !appState.game.isTeachingMode) {
-                          if (appState.game.currentQWrongCount + 1 >= 2) {
-                              teachingNeeded = true;
-                          }
-                      }
-
-                      // Play TTS with callback
-                      playTTS(opt.word, () => {
-                          if (teachingNeeded) {
-                              triggerTeachingMode(currentQ);
-                          }
-                      });
-                      
-                      // Execute game logic immediately (UI updates etc)
-                      checkAnswer(isCorrect, btn, currentQ);
+                      playTTS(opt.word); 
+                      checkAnswer(opt.id === currentQ.id, btn, currentQ);
                 };
                 
                 optionsGrid.appendChild(btn);
@@ -2580,3 +2579,4 @@
     </script>
 </body>
 </html>
+
