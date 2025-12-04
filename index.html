@@ -493,9 +493,9 @@
                     </div>
 
                     <div class="text-center">
-                        <button onclick="playAgain()" class="btn-pastel btn-blue px-10 py-4 rounded-full text-2xl font-bold shadow-lg">
-                            <i class="fa-solid fa-rotate-right"></i> 再玩一次
-                        </button>
+<button id="btn-play-again" onclick="playAgain()" class="btn-pastel btn-blue px-10 py-4 rounded-full text-2xl font-bold shadow-lg">
+    <i class="fa-solid fa-rotate-right"></i> 再玩一次
+</button>
                     </div>
                 </div>
             </div>
@@ -2481,12 +2481,66 @@ function nextQuestion() {
             });
         }
 
-        function sendScoreToGoogleSheets(data) {
-            const params = new URLSearchParams(data).toString();
-            const url = `${GOOGLE_SCRIPT_URL}?${params}`;
-            fetch(url, { method: 'GET', mode: 'no-cors' })
-            .then(() => console.log("Score sent"))
-            .catch(err => console.error("Failed to send score", err));
+// 輔助工具：讓程式等待 (不要動它)
+        const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        // 新版上傳功能：包含「隨機延遲」與「自動重試」
+        async function sendScoreToGoogleSheets(data) {
+            const maxRetries = 5; // 如果失敗，最多試 5 次
+            let attempt = 0;
+            let success = false;
+            
+            // 1. 先把「再玩一次」按鈕鎖起來，變成灰色，防止學生亂按
+            const btnPlayAgain = document.getElementById('btn-play-again');
+            const originalBtnText = btnPlayAgain ? btnPlayAgain.innerHTML : '';
+            
+            if (btnPlayAgain) {
+                btnPlayAgain.disabled = true; 
+                btnPlayAgain.classList.add('opacity-50', 'cursor-not-allowed');
+                // 按鈕文字會變成轉圈圈
+                btnPlayAgain.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 成績上傳中...';
+            }
+
+            // 2. 【關鍵】隨機等待 0~8 秒
+            // 這樣 300 人就不會同時擠爆 Google，而是排隊慢慢進去
+            const initialDelay = Math.random() * 8000;
+            console.log(`系統分流延遲: ${(initialDelay/1000).toFixed(1)}s`);
+            await wait(initialDelay);
+
+            // 3. 開始嘗試上傳 (如果不通就重試)
+            while (attempt < maxRetries && !success) {
+                try {
+                    attempt++;
+                    const params = new URLSearchParams(data).toString();
+                    const url = `${GOOGLE_SCRIPT_URL}?${params}`;
+
+                    // 發送資料
+                    await fetch(url, { method: 'GET', mode: 'no-cors' });
+
+                    // 如果程式跑到這沒報錯，就當作成功了
+                    success = true;
+                    
+                    // 4. 成功後：在畫面上顯示綠色雲朵
+                    const resultInfo = document.getElementById('result-info');
+                    if(resultInfo && !resultInfo.innerHTML.includes('成績已存檔')) {
+                        resultInfo.innerHTML += ' <span class="text-green-500 font-bold ml-2 animate-pop"><i class="fa-solid fa-cloud-arrow-up"></i> 成績已存檔</span>';
+                    }
+
+                } catch (error) {
+                    console.error(`上傳失敗，第 ${attempt} 次重試...`, error);
+                    if (attempt < maxRetries) {
+                        // 失敗了別急，等個 3~5 秒再試一次
+                        await wait(3000 + Math.random() * 2000);
+                    }
+                }
+            }
+
+            // 5. 全部完成！把「再玩一次」按鈕解鎖，變回藍色
+            if (btnPlayAgain) {
+                btnPlayAgain.disabled = false;
+                btnPlayAgain.classList.remove('opacity-50', 'cursor-not-allowed');
+                btnPlayAgain.innerHTML = originalBtnText;
+            }
         }
 
         // ----------------------------------------------------
@@ -2604,5 +2658,6 @@ function nextQuestion() {
     </script>
 </body>
 </html>
+
 
 
