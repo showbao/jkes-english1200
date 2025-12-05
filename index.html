@@ -2217,19 +2217,44 @@
             document.getElementById('comboDisplay').innerText = appState.game.combo;
         }
 
-        function calculateCurrentScore() {
+function calculateCurrentScore() {
             const timeMin = appState.game.timeLimit / 60;
             const mode = appState.game.mode;
             const targets = SCORE_STANDARDS[mode] || SCORE_STANDARDS['cloze'];
             const target = targets[timeMin] || 15;
-            const weight = 75 / target;
             
-            // Total attempted logic: Corrects + Wrong Questions (Unique)
+            // --- 新版公式參數 ---
+            const BASE_FLOOR = 25;  // 保底分 (解決低動機)
+            const TARGET_SCORE_PORTION = 60; // 達標時的變動分數 (25+60=85分)
+            const weight = TARGET_SCORE_PORTION / target; // 單題價值
+
+            // 總作答題數
             const total = appState.game.correctCount + appState.game.wrongQuestionIds.size;
+            
+            // 如果完全沒作答，給 0 分 (避免進去發呆也有25分)
             if (total === 0) return 0;
 
-            let baseScore = (appState.game.correctCount * weight) * (appState.game.correctCount / total);
-            return appState.game.score + baseScore; 
+            // 1. 計算正確率 (Accuracy)
+            const rawAccuracy = appState.game.correctCount / total;
+            
+            // 2. 緩和係數 (Soft Accuracy): 0.4 + 0.6 * 正確率
+            // 讓亂猜的人 (Acc 0.3) 還有 0.58 的係數，不會直接歸零
+            const accFactor = 0.4 + (0.6 * rawAccuracy);
+
+            // 3. 計算基本分 (Base Score)
+            // 公式: 保底 + (答對題數 * 單題分 * 緩和係數)
+            let baseScore = BASE_FLOOR + (appState.game.correctCount * weight * accFactor);
+            
+            // 4. 加上 Combo 獎勵
+            let totalScore = baseScore + appState.game.score;
+
+            // 5. 高分軟上限 (Soft Cap)
+            // 超過 100 分的部分，打 5 折
+            if (totalScore > 100) {
+                totalScore = 100 + (totalScore - 100) * 0.5;
+            }
+
+            return totalScore; 
         }
 
 function nextQuestion() {
@@ -2430,33 +2455,20 @@ btn.className = "w-full p-4 bg-white border-2 border-gray-200 rounded-2xl flex i
             showResults();
         }
 
-        function showResults() {
-            // 👇👇👇 請加入這段防重複檢查 👇👇👇
-            if (appState.game.scoreSent) return; // 如果已經送過，就停止執行
-            appState.game.scoreSent = true;      // 標記為「已發送」
-            // 👆👆👆 加入結束 👆👆👆
+function showResults() {
+            if (appState.game.scoreSent) return; 
+            appState.game.scoreSent = true;      
+
             showSection('result-section');
             
-            const timeLimit = appState.game.timeLimit;
-            const timeMin = timeLimit / 60;
-            const mode = appState.game.mode;
+            // --- 呼叫新版公式計算最終分數 ---
+            const finalScore = calculateCurrentScore();
             
-            const targets = SCORE_STANDARDS[mode];
-            const target = targets[timeMin] || 15;
-            
+            // 準備顯示數據
             const correctCount = appState.game.correctCount;
             const wrongCount = appState.game.wrongQuestionIds.size;
             const totalQuestions = correctCount + wrongCount;
-            
-            const weight = 75 / target;
-            // Accuracy: based on questions answered perfectly vs total questions seen
-            const accuracy = totalQuestions > 0 ? (correctCount / totalQuestions) : 0;
-            
-            let baseScore = (correctCount * weight) * accuracy;
-            let comboBonus = appState.game.score; 
-            
-            let finalScore = baseScore + comboBonus;
-            
+
             const displayLevel = levelMap[appState.game.level] || appState.game.level;
             const now = new Date();
             const dateStr = now.getFullYear() + '/' + (now.getMonth()+1) + '/' + now.getDate() + ' ' + now.getHours() + ':' + now.getMinutes();
@@ -2475,18 +2487,21 @@ btn.className = "w-full p-4 bg-white border-2 border-gray-200 rounded-2xl flex i
             const scoreEl = document.getElementById('final-score');
             const bonusEl = document.getElementById('bonus-text');
             
-            let finalScoreDisplay = 0;
-
-            if (baseScore > 100) {
-                finalScoreDisplay = 100;
-                scoreEl.innerText = "100";
-                bonusEl.innerText = `+ ${(finalScore - 100).toFixed(1)} 額外獎勵分!`;
+            // 顯示邏輯：因為已經內建軟上限，直接顯示計算結果即可
+            // 若超過 100 分，依然顯示 100+ 效果讓學生開心
+            let finalScoreDisplay = finalScore.toFixed(1);
+            
+            if (finalScore > 100) {
+                scoreEl.innerText = "100"; 
+                // 顯示超過 100 的部分作為 "額外獎勵"
+                bonusEl.innerText = `+ ${(finalScore - 100).toFixed(1)} 額外獎勵分! (神人級表現)`;
+                // 實際存入 Google Sheet 的還是完整分數 (如 115.5)
             } else {
-                finalScoreDisplay = finalScore.toFixed(1);
                 scoreEl.innerText = finalScoreDisplay;
-                bonusEl.innerText = comboBonus > 0 ? `(含 Combo 加分 ${comboBonus})` : "";
+                bonusEl.innerText = appState.game.score > 0 ? `(含 Combo 加分 ${appState.game.score})` : "";
             }
 
+            // 錯題列表
             const list = document.getElementById('mistakes-list');
             let mistakesStr = "";
             if (appState.game.mistakes.length === 0) {
@@ -2505,13 +2520,14 @@ btn.className = "w-full p-4 bg-white border-2 border-gray-200 rounded-2xl flex i
                 mistakesStr = appState.game.mistakes.map(m => m.word).join(", ");
             }
 
+            // 傳送成績 (使用新計算的 finalScore)
             sendScoreToGoogleSheets({
                 date: dateStr,
                 student: appState.game.student,
-                mode: mode === 'cloze' ? '克漏字' : '配對',
+                mode: modeCN,
                 level: displayLevel,
-                time: timeMin + '分鐘',
-                score: finalScoreDisplay,
+                time: timeCN,
+                score: finalScore.toFixed(1), // 傳送完整分數
                 correct: correctCount,
                 wrong: wrongCount,
                 mistakes: mistakesStr
@@ -2695,6 +2711,7 @@ btn.className = "w-full p-4 bg-white border-2 border-gray-200 rounded-2xl flex i
     </script>
 </body>
 </html>
+
 
 
 
