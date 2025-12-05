@@ -2404,49 +2404,67 @@ function triggerTeachingMode(questionObj) {
             // 開啟 Modal
             openModalById(questionObj.id);
             
-            // 1. 先鎖定關閉按鈕，並顯示提示
+            // --- UI 控制 ---
             const closeBtn = document.getElementById('modal-close-btn');
+            const levelLabel = document.getElementById('modal-level'); // 抓取左上角標籤
+            let originalLevelText = "";
+
+            // 1. 鎖定按鈕
             if(closeBtn) {
                 closeBtn.disabled = true;
                 closeBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                closeBtn.innerText = "🔊 聆聽中..."; // 提示學生正在朗讀
+                closeBtn.innerText = "請仔細聆聽..."; 
             }
 
-            // 2. 準備語音物件
-            // A. 單字
+            // 2. 修改左上角標籤為「聆聽中」
+            if(levelLabel) {
+                originalLevelText = levelLabel.innerText; // 先記住原本的等級(如: 初級)
+                levelLabel.innerText = "🔊 聆聽中...";
+                levelLabel.classList.add("text-blue-500", "animate-pulse"); // 加一點跳動效果提示
+            }
+
+            // --- 語音準備 ---
             const wordUtterance = new SpeechSynthesisUtterance(questionObj.word);
             wordUtterance.lang = 'en-US';
             wordUtterance.rate = 0.7;
             if(preferredVoice) wordUtterance.voice = preferredVoice;
 
-            // B. 例句
             const sentUtterance = new SpeechSynthesisUtterance(questionObj.sent);
             sentUtterance.lang = 'en-US';
             sentUtterance.rate = 0.7;
             if(preferredVoice) sentUtterance.voice = preferredVoice;
 
-            // 3. 設定接力順序
+            // --- 接力順序 ---
             wordUtterance.onend = function() {
-                // 單字唸完 -> 休息 0.5 秒 -> 唸例句
                 setTimeout(() => {
                     window.speechSynthesis.speak(sentUtterance);
                 }, 500);
             };
 
             sentUtterance.onend = function() {
-                // 例句唸完 -> 解鎖按鈕
+                // 唸完後的復原工作
+                
+                // 1. 解鎖按鈕
                 if(closeBtn) {
                     closeBtn.disabled = false;
                     closeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                    closeBtn.innerText = "關閉 (回到遊戲)"; // 提示可以關閉了
+                    closeBtn.innerText = "關閉 (回到遊戲)";
+                }
+
+                // 2. 左上角標籤復原 (變回原本等級，或是空白)
+                if(levelLabel) {
+                    levelLabel.innerText = originalLevelText; // 變回 "初級"
+                    // 如果您希望它唸完就「消失」，請把上面這行改成：
+                    // levelLabel.style.display = 'none'; 
+                    
+                    levelLabel.classList.remove("text-blue-500", "animate-pulse");
                 }
             };
 
-            // 4. 開始播放
+            // --- 開始播放 ---
             window.speechSynthesis.cancel();
             window.speechSynthesis.speak(wordUtterance);
         }
-
         function triggerFeedback(text, colorClass) {
             const container = document.getElementById('feedback-container');
             const el = document.createElement('div');
@@ -2783,6 +2801,7 @@ function playTTSSequence(word, sent) {
     </script>
 </body>
 </html>
+
 
 
 
