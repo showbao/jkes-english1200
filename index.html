@@ -2169,6 +2169,7 @@
             appState.game.timeLeft = appState.game.timeLimit;
             appState.game.level = level;
             appState.game.score = 0;
+　　　　　　 appState.game.scoreSent = false; // 重置成績發送狀態
             appState.game.combo = 0;
             appState.game.maxCombo = 0;
             appState.game.correctCount = 0;
@@ -2430,6 +2431,10 @@ btn.className = "w-full p-4 bg-white border-2 border-gray-200 rounded-2xl flex i
         }
 
         function showResults() {
+            // 👇👇👇 請加入這段防重複檢查 👇👇👇
+            if (appState.game.scoreSent) return; // 如果已經送過，就停止執行
+            appState.game.scoreSent = true;      // 標記為「已發送」
+            // 👆👆👆 加入結束 👆👆👆
             showSection('result-section');
             
             const timeLimit = appState.game.timeLimit;
@@ -2690,6 +2695,7 @@ btn.className = "w-full p-4 bg-white border-2 border-gray-200 rounded-2xl flex i
     </script>
 </body>
 </html>
+
 
 
 
