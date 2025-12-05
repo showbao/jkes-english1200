@@ -2397,10 +2397,54 @@
             updateDashBoard();
         }
 
-        function triggerTeachingMode(questionObj) {
+function triggerTeachingMode(questionObj) {
             appState.game.isTeachingMode = true;
-            clearInterval(appState.game.timer);
+            clearInterval(appState.game.timer); // 暫停遊戲計時
+            
+            // 開啟 Modal
             openModalById(questionObj.id);
+            
+            // 1. 先鎖定關閉按鈕，並顯示提示
+            const closeBtn = document.getElementById('modal-close-btn');
+            if(closeBtn) {
+                closeBtn.disabled = true;
+                closeBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                closeBtn.innerText = "🔊 聆聽中..."; // 提示學生正在朗讀
+            }
+
+            // 2. 準備語音物件
+            // A. 單字
+            const wordUtterance = new SpeechSynthesisUtterance(questionObj.word);
+            wordUtterance.lang = 'en-US';
+            wordUtterance.rate = 0.7;
+            if(preferredVoice) wordUtterance.voice = preferredVoice;
+
+            // B. 例句
+            const sentUtterance = new SpeechSynthesisUtterance(questionObj.sent);
+            sentUtterance.lang = 'en-US';
+            sentUtterance.rate = 0.7;
+            if(preferredVoice) sentUtterance.voice = preferredVoice;
+
+            // 3. 設定接力順序
+            wordUtterance.onend = function() {
+                // 單字唸完 -> 休息 0.5 秒 -> 唸例句
+                setTimeout(() => {
+                    window.speechSynthesis.speak(sentUtterance);
+                }, 500);
+            };
+
+            sentUtterance.onend = function() {
+                // 例句唸完 -> 解鎖按鈕
+                if(closeBtn) {
+                    closeBtn.disabled = false;
+                    closeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    closeBtn.innerText = "關閉 (回到遊戲)"; // 提示可以關閉了
+                }
+            };
+
+            // 4. 開始播放
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(wordUtterance);
         }
 
         function triggerFeedback(text, colorClass) {
@@ -2739,6 +2783,7 @@ function playTTSSequence(word, sent) {
     </script>
 </body>
 </html>
+
 
 
 
