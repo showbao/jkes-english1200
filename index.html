@@ -2233,7 +2233,10 @@
 
 function nextQuestion() {
             if (!appState.game.isPlaying) return;
-            
+ // 【新增】強制清除任何殘留的焦點 (藍框)
+            if (document.activeElement instanceof HTMLElement) {
+                document.activeElement.blur();
+            }           
             // 清除上一題的計時器與狀態
             clearTimeout(appState.game.audioTimer);
             appState.game.currentQWrongCount = 0;
@@ -2686,6 +2689,7 @@ function nextQuestion() {
     </script>
 </body>
 </html>
+
 
 
 
