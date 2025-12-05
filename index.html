@@ -20,6 +20,24 @@
             --pastel-yellow: #FDFD96;
             --pastel-purple: #C3B1E1;
             --text-color: #555;
+            /* 手機版樣式修正：強制錯誤顏色優先於 Hover/Focus */
+        button.bg-red-400:hover, 
+        button.bg-red-400:focus,
+        button.bg-red-400:active {
+            background-color: rgb(248 113 113) !important; /* Tailwind red-400 */
+            border-color: rgb(220 38 38) !important; /* Tailwind red-600 */
+            color: white !important;
+            transform: none !important; /* 防止抖動時被 hover 放大干擾 */
+        }
+
+        /* 同理，強制正確顏色 (綠色) 優先 */
+        button.bg-green-400:hover, 
+        button.bg-green-400:focus, 
+        button.bg-green-400:active {
+            background-color: rgb(74 222 128) !important; /* Tailwind green-400 */
+            border-color: rgb(22 163 74) !important; /* Tailwind green-600 */
+            color: white !important;
+        }
         }
 
         body {
@@ -2305,6 +2323,7 @@ function nextQuestion() {
                 btn.onclick = (e) => {
                      // 防止連點
                      if(appState.game.isLocked) return;
+                    btn.blur();
                      
                      // 1. 先執行檢查 (變色、扣分、計算錯誤次數)
                      checkAnswer(opt.id === currentQ.id, btn, currentQ);
@@ -2667,6 +2686,7 @@ function nextQuestion() {
     </script>
 </body>
 </html>
+
 
 
 
