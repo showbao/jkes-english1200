@@ -2247,7 +2247,6 @@ function nextQuestion() {
                     regex = new RegExp(safeWord, 'gi');
                 } else {
                     // 一般單字：加上邊界，並允許常見字尾 (s, es, d, ed, ing)
-                    // 這樣 apple 也可以挖空 apples
                     regex = new RegExp(`\\b${safeWord}(?:s|es|d|ed|ing)?\\b`, 'gi');
                 }
 
@@ -2300,21 +2299,31 @@ function nextQuestion() {
                 span.innerText = opt.word;
                 btn.appendChild(span);
                 
-                // 點擊事件：先唸 -> 再檢查
+                // ----------------------------------------------------
+                // 👇👇👇 關鍵修復點就在這裡 👇👇👇
+                // ----------------------------------------------------
                 btn.onclick = (e) => {
                      // 防止連點
                      if(appState.game.isLocked) return;
                      
-                     // 唸出選項
-                     playTTS(opt.word); 
-                     // 檢查答案
+                     // 1. 先執行檢查 (變色、扣分、計算錯誤次數)
                      checkAnswer(opt.id === currentQ.id, btn, currentQ);
+
+                     // 2. 播放選項聲音，並使用 callback 確保聲音結束後才做動作
+                     playTTS(opt.word, () => {
+                         
+                         // 3. 聲音結束後，檢查是否需要觸發「教學模式」
+                         // 條件：這題答錯 (ID不符) 且 目前累積錯誤次數 >= 2
+                         if (opt.id !== currentQ.id && appState.game.currentQWrongCount >= 2) {
+                             triggerTeachingMode(currentQ);
+                         }
+                     });
                 };
+                // ----------------------------------------------------
                 
                 optionsGrid.appendChild(btn);
             });
         }
-
         function checkAnswer(isCorrect, btnElement, questionObj) {
             if (appState.game.isLocked || appState.game.isTeachingMode) return;
             
@@ -2658,6 +2667,7 @@ function nextQuestion() {
     </script>
 </body>
 </html>
+
 
 
 
