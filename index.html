@@ -20,24 +20,6 @@
             --pastel-yellow: #FDFD96;
             --pastel-purple: #C3B1E1;
             --text-color: #555;
-            /* 手機版樣式修正：強制錯誤顏色優先於 Hover/Focus */
-        button.bg-red-400:hover, 
-        button.bg-red-400:focus,
-        button.bg-red-400:active {
-            background-color: rgb(248 113 113) !important; /* Tailwind red-400 */
-            border-color: rgb(220 38 38) !important; /* Tailwind red-600 */
-            color: white !important;
-            transform: none !important; /* 防止抖動時被 hover 放大干擾 */
-        }
-
-        /* 同理，強制正確顏色 (綠色) 優先 */
-        button.bg-green-400:hover, 
-        button.bg-green-400:focus, 
-        button.bg-green-400:active {
-            background-color: rgb(74 222 128) !important; /* Tailwind green-400 */
-            border-color: rgb(22 163 74) !important; /* Tailwind green-600 */
-            color: white !important;
-        }
         }
 
         body {
@@ -46,6 +28,25 @@
             color: var(--text-color);
             background-image: radial-gradient(#E0E0E0 1px, transparent 1px);
             background-size: 20px 20px;
+        }
+
+        /* 手機版樣式修正：強制錯誤顏色優先於 Hover/Focus */
+        button.bg-red-400:hover, 
+        button.bg-red-400:focus,
+        button.bg-red-400:active {
+            background-color: rgb(248 113 113) !important;
+            border-color: rgb(220 38 38) !important;
+            color: white !important;
+            transform: none !important;
+        }
+
+        /* 強制正確顏色 (綠色) 優先 */
+        button.bg-green-400:hover, 
+        button.bg-green-400:focus, 
+        button.bg-green-400:active {
+            background-color: rgb(74 222 128) !important;
+            border-color: rgb(22 163 74) !important;
+            color: white !important;
         }
 
         /* Smart Header Transitions */
@@ -73,7 +74,7 @@
             animation: shake 0.3s ease-in-out;
         }
 
-        /* Enhanced Feedback Animation - Centered Overlay */
+        /* Enhanced Feedback Animation */
         @keyframes zoomFade {
             0% { transform: scale(0.5); opacity: 0; }
             40% { transform: scale(1.2); opacity: 1; }
@@ -86,6 +87,15 @@
             animation: zoomFade 1s ease-out forwards;
             text-shadow: 3px 3px 0px white, -1px -1px 0px white;
             white-space: nowrap;
+        }
+
+        /* Pulse animation for listening status */
+        @keyframes pulse-text {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .listening-pulse {
+            animation: pulse-text 1.5s infinite;
         }
 
         /* Card Flip Styles */
@@ -159,12 +169,12 @@
         }
         .modal-content {
             background-color: #fff;
-            margin: 5% auto; /* Adjusted margin */
+            margin: 5% auto;
             border-radius: 1.5rem;
             box-shadow: 0 10px 25px rgba(0,0,0,0.2);
             position: relative;
             animation: popIn 0.3s;
-            max-height: 90vh; /* Limit height */
+            max-height: 90vh;
             display: flex;
             flex-direction: column;
         }
@@ -252,13 +262,13 @@
         
         .catalog-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr); /* Default 2 cols for mobile */
+            grid-template-columns: repeat(2, 1fr);
             gap: 12px;
         }
         
         @media (min-width: 768px) {
             .catalog-grid {
-                grid-template-columns: repeat(4, 1fr); /* 4 cols for desktop */
+                grid-template-columns: repeat(4, 1fr);
             }
         }
 
@@ -329,16 +339,16 @@
                         🎮 檢測單字
                     </button>
                 </div>
-  <div class="mt-8 text-sm text-gray-400 bg-gray-50 py-2 px-4 rounded-full inline-flex items-center gap-2 border border-gray-100">
-            <i class="fa-brands fa-chrome text-blue-400"></i>
-            <span>本網站音訊功能建議使用 <b>Chrome</b> 或 <b>Edge</b> 瀏覽器</span>
-        </div>
-          </div>
+                <div class="mt-8 text-sm text-gray-400 bg-gray-50 py-2 px-4 rounded-full inline-flex items-center gap-2 border border-gray-100">
+                    <i class="fa-brands fa-chrome text-blue-400"></i>
+                    <span>本網站音訊功能建議使用 <b>Chrome</b> 或 <b>Edge</b> 瀏覽器</span>
+                </div>
+            </div>
         </section>
 
         <!-- 2. Learning Section -->
         <section id="learn-section" class="hidden">
-            <!-- Filters (Sticky, Smart Hidden) -->
+            <!-- Filters -->
             <div id="learn-filters" class="filter-bar bg-white p-6 rounded-2xl shadow-md mb-8 sticky top-24 z-40">
                 <!-- Level Tabs -->
                 <div class="flex flex-wrap gap-4 mb-6 justify-center">
@@ -439,10 +449,10 @@
                 </div>
             </div>
 
-            <!-- Game Area Wrapper with Relative Positioning for Feedback Overlay -->
+            <!-- Game Area Wrapper -->
             <div class="flex-grow flex flex-col justify-center items-center w-full relative">
                 
-                <!-- Feedback Overlay Container (Centered) -->
+                <!-- Feedback Overlay Container -->
                 <div id="feedback-container" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full flex justify-center items-center pointer-events-none z-50"></div>
 
                 <!-- Question Card -->
@@ -467,11 +477,13 @@
             <div class="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl overflow-hidden animate-pop">
                 <div class="bg-gradient-to-r from-blue-300 to-purple-300 p-8 text-center text-white">
                     <h2 class="text-4xl font-bold mb-2">🎉 測驗完成！</h2>
-                    <p id="result-info" class="text-lg opacity-90">班級: 701-05 | 等級: 初級</p>
+                    <div id="result-info" class="text-lg opacity-90 leading-relaxed">
+                        <!-- Result info injected here -->
+                    </div>
                 </div>
                 
                 <div class="p-8">
-                    <!-- Score Details Grid Adjusted -->
+                    <!-- Score Details Grid -->
                     <div class="flex flex-col md:flex-row gap-6 justify-center items-center mb-8">
                         <div class="text-center p-6 bg-yellow-50 rounded-2xl border-2 border-yellow-100 w-full md:w-1/3">
                             <div class="text-gray-500 text-sm">最終總分</div>
@@ -479,27 +491,28 @@
                             <div id="bonus-text" class="text-green-500 text-sm font-bold h-5"></div>
                         </div>
                         <div class="grid grid-cols-2 gap-4 w-full md:w-2/3">
-                            <!-- Left Top: Total -->
                             <div class="bg-gray-50 p-4 rounded-xl text-center">
                                 <div class="text-xs text-gray-400">總題數</div>
                                 <div id="result-total" class="text-2xl font-bold text-gray-600">0</div>
                             </div>
-                            <!-- Right Top: Max Combo -->
                             <div class="bg-blue-50 p-4 rounded-xl text-center">
                                 <div class="text-xs text-gray-400">最高 Combo</div>
                                 <div id="result-combo" class="text-2xl font-bold text-blue-500">0</div>
                             </div>
-                            <!-- Left Bottom: Correct -->
                             <div class="bg-green-50 p-4 rounded-xl text-center">
                                 <div class="text-xs text-gray-400">答對 (綠色)</div>
                                 <div id="result-correct" class="text-2xl font-bold text-green-500">0</div>
                             </div>
-                            <!-- Right Bottom: Wrong -->
                             <div class="bg-red-50 p-4 rounded-xl text-center">
                                 <div class="text-xs text-gray-400">答錯 (紅色)</div>
                                 <div id="result-wrong" class="text-2xl font-bold text-red-500">0</div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Teacher's Comment Section -->
+                    <div id="teacher-comment" class="bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-6 mb-8 relative flex items-start gap-4 shadow-sm">
+                        <!-- Content injected via JS -->
                     </div>
 
                     <!-- Mistakes Review -->
@@ -511,9 +524,9 @@
                     </div>
 
                     <div class="text-center">
-<button id="btn-play-again" onclick="playAgain()" class="btn-pastel btn-blue px-10 py-4 rounded-full text-2xl font-bold shadow-lg">
-    <i class="fa-solid fa-rotate-right"></i> 再玩一次
-</button>
+                        <button id="btn-play-again" onclick="playAgain()" class="btn-pastel btn-blue px-10 py-4 rounded-full text-2xl font-bold shadow-lg">
+                            <i class="fa-solid fa-rotate-right"></i> 再玩一次
+                        </button>
                     </div>
                 </div>
             </div>
@@ -525,8 +538,13 @@
     <div id="word-modal" class="modal">
         <div class="modal-content w-11/12 max-w-md mx-auto mt-20 p-0 overflow-hidden">
             <div class="bg-blue-50 p-6 text-center relative border-b border-blue-100">
-                <span onclick="closeModal()" class="absolute top-4 right-4 text-2xl text-gray-400 cursor-pointer hover:text-gray-600">&times;</span>
-                <span id="modal-level" class="absolute top-4 left-4 text-xs px-2 py-1 bg-white rounded-md border text-gray-500 font-bold shadow-sm">初級</span>
+                <span id="modal-close-x" onclick="closeModal()" class="absolute top-4 right-4 text-2xl text-gray-400 cursor-pointer hover:text-gray-600 transition">&times;</span>
+                <div class="absolute top-4 left-4 flex gap-2 items-center">
+                    <span id="modal-level" class="text-xs px-2 py-1 bg-white rounded-md border text-gray-500 font-bold shadow-sm">初級</span>
+                    <span id="modal-listening-status" class="hidden text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full font-bold listening-pulse">
+                        <i class="fa-solid fa-volume-high"></i> 朗讀中...
+                    </span>
+                </div>
                 
                 <div id="modal-emoji" class="text-6xl mb-2">🍎</div>
                 <h2 id="modal-word" class="text-4xl font-bold text-gray-800">apple</h2>
@@ -555,7 +573,7 @@
                 </div>
             </div>
             <div class="bg-gray-50 p-4 text-center">
-                <button onclick="closeModal()" class="px-6 py-2 bg-gray-200 text-gray-600 rounded-lg font-bold hover:bg-gray-300">關閉</button>
+                <button id="modal-close-btn" onclick="closeModal()" class="px-6 py-2 bg-gray-200 text-gray-600 rounded-lg font-bold hover:bg-gray-300 transition">關閉</button>
             </div>
         </div>
     </div>
@@ -583,7 +601,7 @@
         </div>
     </div>
 
-    <!-- Lock Screen Overlay (Legacy, kept just in case but used less) -->
+    <!-- Lock Screen Overlay -->
     <div id="lock-overlay">
         <div class="text-6xl mb-4">🔒</div>
         <div class="font-bold">冷靜一下！</div>
@@ -597,7 +615,7 @@
         // ----------------------------------------------------
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw0MTm4MhMyCLFXJ1eEQ0CBJgsc59HYVC2bpKoNYEjKtiolwg9sfo92K8tSleC9tKfI/exec';
 
-        // 模擬 20+ 筆資料
+        // 模擬資料 (保留部分作為範例，實際使用時請替換為完整資料)
         const vocabularyData = [
   {"id": 1, "level": "Elementary", "word": "a", "zh": "一個", "def": "-", "emoji": "", "sent": "I have a red pen.", "sent_zh": "我有一枝紅色的筆。"},
   {"id": 2, "level": "Elementary", "word": "about", "zh": "關於", "def": "大約; 四處", "emoji": "ℹ️", "sent": "It is about five o'clock.", "sent_zh": "現在大約是五點鐘。"},
@@ -1818,8 +1836,8 @@
                 score: 0,
                 combo: 0,
                 maxCombo: 0,
-                correctCount: 0, // Count of "First Try Correct"
-                wrongQuestionIds: new Set(), // Set of question IDs that were ever answered incorrectly
+                correctCount: 0, 
+                wrongQuestionIds: new Set(), 
                 totalAttempted: 0, 
                 questions: [],
                 currentQuestionIndex: 0,
@@ -1829,7 +1847,8 @@
                 questionStartTime: 0,
                 isLocked: false,
                 currentQText: null,
-                isTeachingMode: false
+                isTeachingMode: false,
+                scoreSent: false
             }
         };
 
@@ -1846,7 +1865,7 @@
         };
 
         // ----------------------------------------------------
-        // 3. Initialization & Navigation (Smart Header Logic)
+        // 3. Initialization & Navigation
         // ----------------------------------------------------
         let lastScrollY = 0;
         let preferredVoice = null;
@@ -1985,7 +2004,7 @@
                         <div class="vocab-front group">
                             <span class="text-8xl mb-6 transform group-hover:scale-110 transition">${item.emoji}</span>
                             <h3 class="text-4xl font-bold text-gray-700">${item.word}</h3>
-                            <button onclick="event.stopPropagation(); playTTS('${item.word.replace(/'/g, "\\'")}')" class="mt-6 w-12 h-12 rounded-full bg-blue-100 text-blue-500 hover:bg-blue-500 hover:text-white transition flex items-center justify-center text-xl">
+                            <button onclick="event.stopPropagation(); playTTS(${item.id}, 'word')" class="mt-6 w-12 h-12 rounded-full bg-blue-100 text-blue-500 hover:bg-blue-500 hover:text-white transition flex items-center justify-center text-xl">
                                 <i class="fa-solid fa-volume-high"></i>
                             </button>
                         </div>
@@ -1995,15 +2014,17 @@
                                 <p class="text-4xl text-pink-500 font-bold">${item.zh}</p>
                                 ${defHtml}
                             </div>
+                            
                             <div class="bg-white p-4 rounded-xl w-full text-left shadow-sm border border-gray-100">
                                 <p class="text-blue-600 mb-1 font-semibold text-xl leading-snug">${item.sent}</p>
                                 <p class="text-gray-400 text-base">${item.sent_zh}</p>
                             </div>
+                            
                              <div class="flex gap-2 justify-center mt-4 w-full">
-                                <button onclick="event.stopPropagation(); playTTS('${item.word.replace(/'/g, "\\'")}')" class="flex-1 py-3 bg-gray-100 rounded-xl text-gray-600 font-bold hover:bg-blue-100 text-sm">
+                                <button onclick="event.stopPropagation(); playTTS(${item.id}, 'word')" class="flex-1 py-3 bg-gray-100 rounded-xl text-gray-600 font-bold hover:bg-blue-100 text-sm">
                                     <i class="fa-solid fa-volume-high"></i> 單字
                                 </button>
-                                <button onclick="event.stopPropagation(); playTTS('${item.sent.replace(/'/g, "\\'")}')" class="flex-1 py-3 bg-gray-100 rounded-xl text-gray-600 font-bold hover:bg-yellow-100 text-sm">
+                                <button onclick="event.stopPropagation(); playTTS(${item.id}, 'sent')" class="flex-1 py-3 bg-gray-100 rounded-xl text-gray-600 font-bold hover:bg-yellow-100 text-sm">
                                     <i class="fa-solid fa-volume-high"></i> 例句
                                 </button>
                             </div>
@@ -2169,7 +2190,7 @@
             appState.game.timeLeft = appState.game.timeLimit;
             appState.game.level = level;
             appState.game.score = 0;
-　　　　　　 appState.game.scoreSent = false; // 重置成績發送狀態
+            appState.game.scoreSent = false;
             appState.game.combo = 0;
             appState.game.maxCombo = 0;
             appState.game.correctCount = 0;
@@ -2217,39 +2238,25 @@
             document.getElementById('comboDisplay').innerText = appState.game.combo;
         }
 
-function calculateCurrentScore() {
+        function calculateCurrentScore() {
             const timeMin = appState.game.timeLimit / 60;
             const mode = appState.game.mode;
             const targets = SCORE_STANDARDS[mode] || SCORE_STANDARDS['cloze'];
             const target = targets[timeMin] || 15;
             
-            // --- 新版公式參數 ---
-            const BASE_FLOOR = 25;  // 保底分 (解決低動機)
-            const TARGET_SCORE_PORTION = 60; // 達標時的變動分數 (25+60=85分)
-            const weight = TARGET_SCORE_PORTION / target; // 單題價值
+            const BASE_FLOOR = 25; 
+            const TARGET_SCORE_PORTION = 60;
+            const weight = TARGET_SCORE_PORTION / target;
 
-            // 總作答題數
             const total = appState.game.correctCount + appState.game.wrongQuestionIds.size;
-            
-            // 如果完全沒作答，給 0 分 (避免進去發呆也有25分)
             if (total === 0) return 0;
 
-            // 1. 計算正確率 (Accuracy)
             const rawAccuracy = appState.game.correctCount / total;
-            
-            // 2. 緩和係數 (Soft Accuracy): 0.4 + 0.6 * 正確率
-            // 讓亂猜的人 (Acc 0.3) 還有 0.58 的係數，不會直接歸零
             const accFactor = 0.4 + (0.6 * rawAccuracy);
 
-            // 3. 計算基本分 (Base Score)
-            // 公式: 保底 + (答對題數 * 單題分 * 緩和係數)
             let baseScore = BASE_FLOOR + (appState.game.correctCount * weight * accFactor);
-            
-            // 4. 加上 Combo 獎勵
             let totalScore = baseScore + appState.game.score;
 
-            // 5. 高分軟上限 (Soft Cap)
-            // 超過 100 分的部分，打 5 折
             if (totalScore > 100) {
                 totalScore = 100 + (totalScore - 100) * 0.5;
             }
@@ -2257,127 +2264,89 @@ function calculateCurrentScore() {
             return totalScore; 
         }
 
-function nextQuestion() {
+        function nextQuestion() {
             if (!appState.game.isPlaying) return;
- // 【新增】強制清除任何殘留的焦點 (藍框)
             if (document.activeElement instanceof HTMLElement) {
                 document.activeElement.blur();
-            }           
-            // 清除上一題的計時器與狀態
+            }            
             clearTimeout(appState.game.audioTimer);
             appState.game.currentQWrongCount = 0;
             appState.game.questionStartTime = Date.now();
 
-            // 取得下一題資料
             const qIndex = appState.game.currentQuestionIndex % appState.game.questions.length;
             const currentQ = appState.game.questions[qIndex];
             appState.game.currentQuestionIndex++;
 
-            // 取得 DOM 元素
             const qCard = document.getElementById('question-content');
             const optionsGrid = document.getElementById('options-grid');
             const speakerBtn = document.getElementById('question-speaker');
             optionsGrid.innerHTML = ''; 
 
-            // --- 判斷遊戲模式 ---
             if (appState.game.mode === 'cloze') {
-                // 【克漏字模式】
                 speakerBtn.style.display = 'block';
-                
-                // 1. 處理特殊符號 (避免 . ? ! 等符號導致程式報錯)
                 const safeWord = currentQ.word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
                 let regex;
-                // 2. 智慧判斷：如果是縮寫字(有點)，或是普通單字
                 if (currentQ.word.includes('.')) {
-                    // 針對 Mr., a.m. 等縮寫：不使用 \b 邊界，直接比對
                     regex = new RegExp(safeWord, 'gi');
                 } else {
-                    // 一般單字：加上邊界，並允許常見字尾 (s, es, d, ed, ing)
                     regex = new RegExp(`\\b${safeWord}(?:s|es|d|ed|ing)?\\b`, 'gi');
                 }
 
-                // 3. 執行挖空取代
                 const clozeSent = currentQ.sent.replace(regex, '_______');
                 
-                // 4. 顯示題目 (英文挖空 + 中文翻譯)
                 qCard.innerHTML = `
                     <span class="block mb-3" style="line-height: 1.4;">${clozeSent}</span>
                     <span class="block text-2xl text-gray-400 font-medium">${currentQ.sent_zh}</span>
                 `;
                 
-                // 設定發音內容
                 appState.game.currentQText = currentQ.sent; 
 
-                // 延遲自動朗讀例句 (0.8秒後)
                 appState.game.audioTimer = setTimeout(() => {
-                    // 只有在非教學模式下才自動唸
                     if(!appState.game.isTeachingMode && !appState.game.isLocked) {
                         speakQuestion();
                     }
                 }, 800);
 
             } else {
-                // 【配對遊戲模式】
-                speakerBtn.style.display = 'block'; // 顯示喇叭讓學生可以重聽
-                
-                // 顯示 Emoji + 中文題目
+                speakerBtn.style.display = 'block';
                 qCard.innerHTML = `<div class="text-8xl mb-6">${currentQ.emoji}</div>${currentQ.zh}`;
-                
-                // 設定發音內容為「英文單字」
                 appState.game.currentQText = currentQ.word; 
-                
-                // 立即朗讀單字
                 playTTS(currentQ.word);
             }
 
-            // --- 產生選項 (Options) ---
             let options = [currentQ];
-            // 隨機抓 3 個錯誤選項
             let distractors = vocabularyData.filter(i => i.id !== currentQ.id).sort(() => 0.5 - Math.random()).slice(0, 3);
             options = [...options, ...distractors].sort(() => 0.5 - Math.random());
 
             options.forEach(opt => {
                 const btn = document.createElement('button');
-                // 按鈕樣式
-                // 移除了 hover 變色/變框的樣式，只保留點擊縮放 (active:scale-95)，徹底解決手機藍框殘留
-btn.className = "w-full p-4 bg-white border-2 border-gray-200 rounded-2xl flex items-center justify-center text-2xl font-bold text-gray-600 transition shadow-sm active:scale-95 relative group";
+                btn.className = "w-full p-4 bg-white border-2 border-gray-200 rounded-2xl flex items-center justify-center text-2xl font-bold text-gray-600 transition shadow-sm active:scale-95 relative group";
                 
                 const span = document.createElement('span');
                 span.innerText = opt.word;
                 btn.appendChild(span);
                 
-                // ----------------------------------------------------
-                // 👇👇👇 關鍵修復點就在這裡 👇👇👇
-                // ----------------------------------------------------
                 btn.onclick = (e) => {
-                     // 防止連點
-                     if(appState.game.isLocked) return;
+                      if(appState.game.isLocked) return;
                     btn.blur();
-                     
-                     // 1. 先執行檢查 (變色、扣分、計算錯誤次數)
-                     checkAnswer(opt.id === currentQ.id, btn, currentQ);
+                      
+                      checkAnswer(opt.id === currentQ.id, btn, currentQ);
 
-                     // 2. 播放選項聲音，並使用 callback 確保聲音結束後才做動作
-                     playTTS(opt.word, () => {
-                         
-                         // 3. 聲音結束後，檢查是否需要觸發「教學模式」
-                         // 條件：這題答錯 (ID不符) 且 目前累積錯誤次數 >= 2
-                         if (opt.id !== currentQ.id && appState.game.currentQWrongCount >= 2) {
-                             triggerTeachingMode(currentQ);
-                         }
-                     });
+                      playTTS(opt.word, () => {
+                          if (opt.id !== currentQ.id && appState.game.currentQWrongCount >= 2) {
+                              triggerTeachingMode(currentQ);
+                          }
+                      });
                 };
-                // ----------------------------------------------------
                 
                 optionsGrid.appendChild(btn);
             });
         }
+
         function checkAnswer(isCorrect, btnElement, questionObj) {
             if (appState.game.isLocked || appState.game.isTeachingMode) return;
             
             if (isCorrect) {
-                // Scoring: Only first try counts as 'Correct'
                 if (appState.game.currentQWrongCount === 0) {
                     appState.game.correctCount++;
                 } 
@@ -2392,7 +2361,7 @@ btn.className = "w-full p-4 bg-white border-2 border-gray-200 rounded-2xl flex i
                 feedbackMsgs.push({ text: "Correct! (答對)", color: "text-green-500" });
 
                 if (Date.now() - appState.game.questionStartTime < 3000) {
-                     feedbackMsgs.push({ text: "Speed Bonus! (神速)", color: "text-yellow-500" });
+                      feedbackMsgs.push({ text: "Speed Bonus! (神速)", color: "text-yellow-500" });
                 }
 
                 if (appState.game.combo >= 2) {
@@ -2411,7 +2380,7 @@ btn.className = "w-full p-4 bg-white border-2 border-gray-200 rounded-2xl flex i
 
             } else {
                 appState.game.currentQWrongCount++; 
-                appState.game.wrongQuestionIds.add(questionObj.id); // Mark unique wrong ID
+                appState.game.wrongQuestionIds.add(questionObj.id); 
                 
                 btnElement.classList.remove('bg-white', 'border-gray-200');
                 btnElement.classList.add('bg-red-400', 'border-red-600', 'text-white');
@@ -2424,18 +2393,13 @@ btn.className = "w-full p-4 bg-white border-2 border-gray-200 rounded-2xl flex i
                 }
 
                 triggerFeedback("Oops! (-2)", "text-red-500");
-                
-                // Note: Teaching Mode triggering logic is now handled in btn.onclick callback
-                // to ensure audio plays first.
             }
             updateDashBoard();
         }
 
         function triggerTeachingMode(questionObj) {
             appState.game.isTeachingMode = true;
-            clearInterval(appState.game.timer); // Pause Game Timer
-            
-            // Open Modal (which triggers TTS now)
+            clearInterval(appState.game.timer);
             openModalById(questionObj.id);
         }
 
@@ -2455,16 +2419,14 @@ btn.className = "w-full p-4 bg-white border-2 border-gray-200 rounded-2xl flex i
             showResults();
         }
 
-function showResults() {
+        function showResults() {
             if (appState.game.scoreSent) return; 
-            appState.game.scoreSent = true;      
+            appState.game.scoreSent = true;       
 
             showSection('result-section');
             
-            // --- 呼叫新版公式計算最終分數 ---
             const finalScore = calculateCurrentScore();
             
-            // 準備顯示數據
             const correctCount = appState.game.correctCount;
             const wrongCount = appState.game.wrongQuestionIds.size;
             const totalQuestions = correctCount + wrongCount;
@@ -2476,8 +2438,13 @@ function showResults() {
             const modeCN = appState.game.mode === 'cloze' ? '克漏字' : '配對';
             const timeCN = Math.floor(appState.game.timeLimit / 60) + '分鐘';
 
-            document.getElementById('result-info').innerText = 
-                `班級: ${appState.game.student} | 日期: ${dateStr} | 挑戰模式: ${modeCN} | 挑戰等級: ${displayLevel} | 挑戰時間: ${timeCN}`;
+            // 1. Result Info UI Update (New Lines)
+            const resultInfoEl = document.getElementById('result-info');
+            resultInfoEl.innerHTML = `
+                <div>班級: ${appState.game.student} | 日期: ${dateStr}</div>
+                <div class="mt-1">挑戰模式: ${modeCN} | 挑戰等級: ${displayLevel} | 挑戰時間: ${timeCN}</div>
+                <div id="save-status" class="mt-2 h-6 font-bold text-base"></div> 
+            `;
             
             document.getElementById('result-total').innerText = totalQuestions;
             document.getElementById('result-correct').innerText = correctCount;
@@ -2487,21 +2454,48 @@ function showResults() {
             const scoreEl = document.getElementById('final-score');
             const bonusEl = document.getElementById('bonus-text');
             
-            // 顯示邏輯：因為已經內建軟上限，直接顯示計算結果即可
-            // 若超過 100 分，依然顯示 100+ 效果讓學生開心
-            let finalScoreDisplay = finalScore.toFixed(1);
-            
             if (finalScore > 100) {
                 scoreEl.innerText = "100"; 
-                // 顯示超過 100 的部分作為 "額外獎勵"
                 bonusEl.innerText = `+ ${(finalScore - 100).toFixed(1)} 額外獎勵分! (神人級表現)`;
-                // 實際存入 Google Sheet 的還是完整分數 (如 115.5)
             } else {
-                scoreEl.innerText = finalScoreDisplay;
+                scoreEl.innerText = finalScore.toFixed(1);
                 bonusEl.innerText = appState.game.score > 0 ? `(含 Combo 加分 ${appState.game.score})` : "";
             }
 
-            // 錯題列表
+            // 2. Teacher's Comment Logic
+            const accuracy = totalQuestions > 0 ? (correctCount / totalQuestions) : 0;
+            let comment = "";
+            let icon = "👩‍🏫";
+            
+            if (finalScore >= 100) {
+                comment = "太神啦！你是單字王！(Amazing!)";
+                icon = "🏆";
+            } else if (finalScore >= 80) {
+                comment = "表現優異，繼續保持！(Great job!)";
+                icon = "🌟";
+            } else if (finalScore >= 60) {
+                comment = "做得很好，再一點點就完美了！(Good work!)";
+                icon = "👍";
+            } else if (accuracy > 0.8) {
+                comment = "準確度很高！下次試著加快速度喔！(Very accurate!)";
+                icon = "🎯";
+            } else if (accuracy < 0.5) {
+                comment = "慢慢來，看清楚再選，你可以的！(Take your time!)";
+                icon = "🐢";
+            } else {
+                comment = "加油，每天練習會越來越強！(Keep going!)";
+                icon = "💪";
+            }
+
+            const commentDiv = document.getElementById('teacher-comment');
+            commentDiv.innerHTML = `
+                <div class="text-4xl">${icon}</div>
+                <div>
+                    <div class="font-bold text-yellow-800 mb-1">老師的話：</div>
+                    <div class="text-gray-700 font-medium">${comment}</div>
+                </div>
+            `;
+
             const list = document.getElementById('mistakes-list');
             let mistakesStr = "";
             if (appState.game.mistakes.length === 0) {
@@ -2520,75 +2514,61 @@ function showResults() {
                 mistakesStr = appState.game.mistakes.map(m => m.word).join(", ");
             }
 
-            // 傳送成績 (使用新計算的 finalScore)
             sendScoreToGoogleSheets({
                 date: dateStr,
                 student: appState.game.student,
                 mode: modeCN,
                 level: displayLevel,
                 time: timeCN,
-                score: finalScore.toFixed(1), // 傳送完整分數
+                score: finalScore.toFixed(1),
                 correct: correctCount,
                 wrong: wrongCount,
                 mistakes: mistakesStr
             });
         }
 
-// 輔助工具：讓程式等待 (不要動它)
         const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-        // 新版上傳功能：包含「隨機延遲」與「自動重試」
         async function sendScoreToGoogleSheets(data) {
-            const maxRetries = 5; // 如果失敗，最多試 5 次
+            const maxRetries = 5;
             let attempt = 0;
             let success = false;
             
-            // 1. 先把「再玩一次」按鈕鎖起來，變成灰色，防止學生亂按
             const btnPlayAgain = document.getElementById('btn-play-again');
             const originalBtnText = btnPlayAgain ? btnPlayAgain.innerHTML : '';
             
             if (btnPlayAgain) {
                 btnPlayAgain.disabled = true; 
                 btnPlayAgain.classList.add('opacity-50', 'cursor-not-allowed');
-                // 按鈕文字會變成轉圈圈
                 btnPlayAgain.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 成績上傳中...';
             }
 
-            // 2. 【關鍵】隨機等待 0~8 秒
-            // 這樣 300 人就不會同時擠爆 Google，而是排隊慢慢進去
             const initialDelay = Math.random() * 8000;
-            console.log(`系統分流延遲: ${(initialDelay/1000).toFixed(1)}s`);
             await wait(initialDelay);
 
-            // 3. 開始嘗試上傳 (如果不通就重試)
             while (attempt < maxRetries && !success) {
                 try {
                     attempt++;
                     const params = new URLSearchParams(data).toString();
                     const url = `${GOOGLE_SCRIPT_URL}?${params}`;
 
-                    // 發送資料
                     await fetch(url, { method: 'GET', mode: 'no-cors' });
 
-                    // 如果程式跑到這沒報錯，就當作成功了
                     success = true;
                     
-                    // 4. 成功後：在畫面上顯示綠色雲朵
-                    const resultInfo = document.getElementById('result-info');
-                    if(resultInfo && !resultInfo.innerHTML.includes('成績已存檔')) {
-                        resultInfo.innerHTML += ' <span class="text-green-500 font-bold ml-2 animate-pop"><i class="fa-solid fa-cloud-arrow-up"></i> 成績已存檔</span>';
+                    const statusDiv = document.getElementById('save-status');
+                    if(statusDiv) {
+                        statusDiv.innerHTML = '<span class="text-green-500 animate-pop"><i class="fa-solid fa-cloud-arrow-up"></i> 成績已存檔</span>';
                     }
 
                 } catch (error) {
                     console.error(`上傳失敗，第 ${attempt} 次重試...`, error);
                     if (attempt < maxRetries) {
-                        // 失敗了別急，等個 3~5 秒再試一次
                         await wait(3000 + Math.random() * 2000);
                     }
                 }
             }
 
-            // 5. 全部完成！把「再玩一次」按鈕解鎖，變回藍色
             if (btnPlayAgain) {
                 btnPlayAgain.disabled = false;
                 btnPlayAgain.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -2631,6 +2611,35 @@ function showResults() {
 
             modal.style.display = 'block';
 
+            // 3. Forced Listening Logic
+            const btnCloseX = document.getElementById('modal-close-x');
+            const btnCloseBottom = document.getElementById('modal-close-btn');
+            const listeningStatus = document.getElementById('modal-listening-status');
+
+            if (appState.game.isTeachingMode) {
+                // Lock
+                if(btnCloseX) {
+                    btnCloseX.style.pointerEvents = 'none';
+                    btnCloseX.style.opacity = '0.3';
+                }
+                if(btnCloseBottom) {
+                    btnCloseBottom.disabled = true;
+                    btnCloseBottom.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+                if(listeningStatus) listeningStatus.style.display = 'inline-block';
+            } else {
+                // Ensure unlocked if not in teaching mode
+                if(btnCloseX) {
+                    btnCloseX.style.pointerEvents = 'auto';
+                    btnCloseX.style.opacity = '1';
+                }
+                if(btnCloseBottom) {
+                    btnCloseBottom.disabled = false;
+                    btnCloseBottom.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+                if(listeningStatus) listeningStatus.style.display = 'none';
+            }
+
             // Auto Play Sequence
             playTTSSequence(item.word, item.sent);
         }
@@ -2651,7 +2660,6 @@ function showResults() {
              if (preferredVoice) sentUtterance.voice = preferredVoice;
 
              wordUtterance.onend = function() {
-                 // Check if modal is still open to avoid playing if closed quickly
                  if (document.getElementById('word-modal').style.display === 'none') return;
                  setTimeout(() => {
                      if (document.getElementById('word-modal').style.display === 'none') return;
@@ -2659,23 +2667,45 @@ function showResults() {
                  }, 300);
              };
 
+             // Unlock on sequence end
+             sentUtterance.onend = function() {
+                 if (appState.game.isTeachingMode) {
+                    const btnCloseX = document.getElementById('modal-close-x');
+                    const btnCloseBottom = document.getElementById('modal-close-btn');
+                    const listeningStatus = document.getElementById('modal-listening-status');
+                    
+                    if(btnCloseX) {
+                        btnCloseX.style.pointerEvents = 'auto';
+                        btnCloseX.style.opacity = '1';
+                    }
+                    if(btnCloseBottom) {
+                        btnCloseBottom.disabled = false;
+                        btnCloseBottom.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
+                    if(listeningStatus) listeningStatus.style.display = 'none';
+                 }
+             };
+
              window.speechSynthesis.speak(wordUtterance);
         }
 
         function closeModal() {
-            window.speechSynthesis.cancel(); // Stop sound immediately
+            window.speechSynthesis.cancel(); 
             modal.style.display = 'none';
 
             if (appState.game.isTeachingMode) {
                 appState.game.isTeachingMode = false;
-                appState.game.isLocked = false; // unlock
-                appState.game.timer = setInterval(gameLoop, 1000); // resume
+                appState.game.isLocked = false; 
+                appState.game.timer = setInterval(gameLoop, 1000); 
             }
         }
         
         window.onclick = function(event) {
             if (event.target == modal) {
-                closeModal();
+                // Prevent closing by clicking outside in teaching mode
+                if (!appState.game.isTeachingMode) {
+                    closeModal();
+                }
             } else if (event.target == document.getElementById('catalog-modal')) {
                 closeCatalogModal();
             }
@@ -2711,12 +2741,3 @@ function showResults() {
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
