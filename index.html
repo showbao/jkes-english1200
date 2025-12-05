@@ -2314,7 +2314,8 @@ function nextQuestion() {
             options.forEach(opt => {
                 const btn = document.createElement('button');
                 // 按鈕樣式
-                btn.className = "w-full p-4 bg-white border-2 border-gray-200 rounded-2xl flex items-center justify-center text-2xl font-bold text-gray-600 hover:bg-blue-50 hover:border-blue-300 transition shadow-sm active:scale-95 relative group";
+                // 移除了 hover 變色/變框的樣式，只保留點擊縮放 (active:scale-95)，徹底解決手機藍框殘留
+btn.className = "w-full p-4 bg-white border-2 border-gray-200 rounded-2xl flex items-center justify-center text-2xl font-bold text-gray-600 transition shadow-sm active:scale-95 relative group";
                 
                 const span = document.createElement('span');
                 span.innerText = opt.word;
@@ -2689,6 +2690,7 @@ function nextQuestion() {
     </script>
 </body>
 </html>
+
 
 
 
