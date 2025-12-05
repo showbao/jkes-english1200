@@ -2661,7 +2661,7 @@ function playTTSSequence(word, zh, sent) {
              // B. 中文解釋 (新增)
              const zhUtterance = new SpeechSynthesisUtterance(zh);
              zhUtterance.lang = 'zh-TW'; // 設定為中文
-             zhUtterance.rate = 0.9;     // 中文語速稍微快一點比較自然
+             zhUtterance.rate = 1;     // 中文語速稍微快一點比較自然
 
              // C. 英文例句
              const sentUtterance = new SpeechSynthesisUtterance(sent);
@@ -2754,4 +2754,5 @@ function playTTSSequence(word, zh, sent) {
     </script>
 </body>
 </html>
+
 
