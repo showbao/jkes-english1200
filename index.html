@@ -2427,11 +2427,11 @@ function triggerTeachingMode(questionObj) {
                 closeBtn.innerText = "🔊 朗讀中... (請聆聽)"; 
             }
 
-// 👇👇👇【關鍵修改】直接隱藏右上角叉叉 👇👇👇
+            // 鎖定右上角 X
             if(xBtn) {
-                xBtn.style.display = 'none'; 
+                xBtn.style.pointerEvents = 'none';
+                xBtn.style.opacity = '0.3';
             }
-            // 👆👆👆 修改結束 👆👆👆
 
             // 修改例句按鈕文字為「朗讀中」
             if(sentSpeakerBtn) {
@@ -2698,16 +2698,7 @@ function openModalById(id) {
 
             // 顯示 Modal
             modal.style.display = 'block';
- 
-    // 👇👇👇【新增】確保叉叉在正常開啟時是看得到的 👇👇👇
-            const xBtn = document.getElementById('modal-close-x');
-            if(xBtn) {
-                xBtn.style.display = 'block'; // 恢復顯示
-                xBtn.style.pointerEvents = 'auto';
-                xBtn.style.opacity = '1';
-            }
-            // 👆👆👆 新增結束 👆👆👆      
-    
+            
             // 重置「關閉按鈕」狀態
             const closeBtn = document.getElementById('modal-close-btn');
             if(closeBtn) {
@@ -2822,7 +2813,6 @@ function playTTSSequence(word, sent) {
     </script>
 </body>
 </html>
-
 
 
 
