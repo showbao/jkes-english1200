@@ -618,7 +618,7 @@
         // 模擬資料 (保留部分作為範例，實際使用時請替換為完整資料)
         const vocabularyData = [
   {"id": 1, "level": "Elementary", "word": "a", "zh": "一個", "def": "-", "emoji": "", "sent": "I have a red pen.", "sent_zh": "我有一枝紅色的筆。"},
-  {"id": 2, "level": "Elementary", "word": "about", "zh": "關於", "def": "大約; 四處", "emoji": ℹ️", "sent": "It is about five o'clock.", "sent_zh": "現在大約是五點鐘。"},
+  {"id": 2, "level": "Elementary", "word": "about", "zh": "關於", "def": "大約; 四處", "emoji": "ℹ️", "sent": "It is about five o'clock.", "sent_zh": "現在大約是五點鐘。"},
   {"id": 3, "level": "Elementary", "word": "after", "zh": "在...之後", "def": "以後; 後來", "emoji": "🔜", "sent": "Clean your room after dinner.", "sent_zh": "晚餐後清理你的房間。"},
   {"id": 4, "level": "Elementary", "word": "afternoon", "zh": "下午", "def": "午後", "emoji": "🌇", "sent": "Good afternoon, teacher.", "sent_zh": "老師午安。"},
   {"id": 5, "level": "Elementary", "word": "age", "zh": "年齡", "def": "時期; 變老", "emoji": "🎂", "sent": "What is your age?", "sent_zh": "你幾歲？"},
@@ -2783,22 +2783,40 @@ function playTTSSequence(word, sent) {
             }
         }
 
-        function playTTS(text, onEndCallback) {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'en-US';
-                utterance.rate = 0.7; 
-                if (preferredVoice) utterance.voice = preferredVoice;
-                
-                if (onEndCallback) {
-                    utterance.onend = onEndCallback;
+function playTTS(input, typeOrCallback = null) {
+            if (!('speechSynthesis' in window)) return;
+
+            let textToSpeak = input;
+            let onEndCallback = null;
+
+            // 邏輯判斷：如果 input 是數字 (ID)，就去資料庫查字
+            if (typeof input === 'number') {
+                const item = vocabularyData.find(i => i.id === input);
+                if (item) {
+                    // 根據第二個參數 type ('word' 或 'sent') 決定唸什麼
+                    if (typeOrCallback === 'word') textToSpeak = item.word;
+                    else if (typeOrCallback === 'sent') textToSpeak = item.sent;
                 }
-                
-                window.speechSynthesis.speak(utterance);
             } else {
-                if (onEndCallback) onEndCallback();
+                // 如果不是數字，就假設 input 本身就是文字
+                // 此時第二個參數可能是 callback
+                if (typeof typeOrCallback === 'function') {
+                    onEndCallback = typeOrCallback;
+                }
             }
+
+            // 開始播放
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(textToSpeak);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.7; 
+            if (preferredVoice) utterance.voice = preferredVoice;
+            
+            if (onEndCallback) {
+                utterance.onend = onEndCallback;
+            }
+            
+            window.speechSynthesis.speak(utterance);
         }
 
         function speakQuestion() {
