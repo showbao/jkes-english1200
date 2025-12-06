@@ -538,7 +538,7 @@
     <div id="word-modal" class="modal">
         <div class="modal-content w-11/12 max-w-md mx-auto mt-20 p-0 overflow-hidden">
             <div class="bg-blue-50 p-6 text-center relative border-b border-blue-100">
-                <span id="modal-close-x" onclick="closeModal()" class="absolute top-4 right-4 text-2xl text-gray-400 cursor-pointer hover:text-gray-600 transition">&times;</span>
+               
                 <div class="absolute top-4 left-4 flex gap-2 items-center">
                     <span id="modal-level" class="text-xs px-2 py-1 bg-white rounded-md border text-gray-500 font-bold shadow-sm">初級</span>
                     <span id="modal-listening-status" class="hidden text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full font-bold listening-pulse">
@@ -554,7 +554,7 @@
                     </button>
                 </div>
             </div>
-            <div class="p-6 space-y-4">
+<div class="p-6 space-y-4 flex-1 overflow-y-auto">
                 <div class="flex items-start gap-3">
                     <div class="text-xl">🇹🇼</div>
                     <div class="flex-1">
@@ -618,7 +618,7 @@
         // 模擬資料 (保留部分作為範例，實際使用時請替換為完整資料)
         const vocabularyData = [
   {"id": 1, "level": "Elementary", "word": "a", "zh": "一個", "def": "-", "emoji": "", "sent": "I have a red pen.", "sent_zh": "我有一枝紅色的筆。"},
-  {"id": 2, "level": "Elementary", "word": "about", "zh": "關於", "def": "大約; 四處", "emoji": "ℹ️", "sent": "It is about five o'clock.", "sent_zh": "現在大約是五點鐘。"},
+  {"id": 2, "level": "Elementary", "word": "about", "zh": "關於", "def": "大約; 四處", "emoji": ℹ️", "sent": "It is about five o'clock.", "sent_zh": "現在大約是五點鐘。"},
   {"id": 3, "level": "Elementary", "word": "after", "zh": "在...之後", "def": "以後; 後來", "emoji": "🔜", "sent": "Clean your room after dinner.", "sent_zh": "晚餐後清理你的房間。"},
   {"id": 4, "level": "Elementary", "word": "afternoon", "zh": "下午", "def": "午後", "emoji": "🌇", "sent": "Good afternoon, teacher.", "sent_zh": "老師午安。"},
   {"id": 5, "level": "Elementary", "word": "age", "zh": "年齡", "def": "時期; 變老", "emoji": "🎂", "sent": "What is your age?", "sent_zh": "你幾歲？"},
