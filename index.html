@@ -2264,11 +2264,14 @@
             return totalScore; 
         }
 
-        function nextQuestion() {
+function nextQuestion() {
             if (!appState.game.isPlaying) return;
+
+            // 強制清除手機版殘留的藍色選取框 (Focus State Retention)
             if (document.activeElement instanceof HTMLElement) {
                 document.activeElement.blur();
-            }            
+            }
+            
             clearTimeout(appState.game.audioTimer);
             appState.game.currentQWrongCount = 0;
             appState.game.questionStartTime = Date.now();
@@ -2283,7 +2286,9 @@
             optionsGrid.innerHTML = ''; 
 
             if (appState.game.mode === 'cloze') {
+                // 克漏字模式
                 speakerBtn.style.display = 'block';
+                
                 const safeWord = currentQ.word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 let regex;
                 if (currentQ.word.includes('.')) {
@@ -2301,6 +2306,7 @@
                 
                 appState.game.currentQText = currentQ.sent; 
 
+                // 只有非教學模式才自動唸題目
                 appState.game.audioTimer = setTimeout(() => {
                     if(!appState.game.isTeachingMode && !appState.game.isLocked) {
                         speakQuestion();
@@ -2308,6 +2314,7 @@
                 }, 800);
 
             } else {
+                // 配對遊戲模式
                 speakerBtn.style.display = 'block';
                 qCard.innerHTML = `<div class="text-8xl mb-6">${currentQ.emoji}</div>${currentQ.zh}`;
                 appState.game.currentQText = currentQ.word; 
@@ -2320,24 +2327,30 @@
 
             options.forEach(opt => {
                 const btn = document.createElement('button');
+                // 移除 hover 樣式，解決手機版黏滯問題
                 btn.className = "w-full p-4 bg-white border-2 border-gray-200 rounded-2xl flex items-center justify-center text-2xl font-bold text-gray-600 transition shadow-sm active:scale-95 relative group";
                 
                 const span = document.createElement('span');
                 span.innerText = opt.word;
                 btn.appendChild(span);
                 
+                // --- 點擊事件核心邏輯 ---
                 btn.onclick = (e) => {
-                      if(appState.game.isLocked) return;
-                    btn.blur();
-                      
-                      checkAnswer(opt.id === currentQ.id, btn, currentQ);
+                     if(appState.game.isLocked) return;
+                     btn.blur(); // 再次確保清除焦點
+                     
+                     // 1. 先變色、計分
+                     checkAnswer(opt.id === currentQ.id, btn, currentQ);
 
-                      playTTS(opt.word, () => {
-                          if (opt.id !== currentQ.id && appState.game.currentQWrongCount >= 2) {
-                              triggerTeachingMode(currentQ);
-                          }
-                      });
+                     // 2. 唸出選項 -> 唸完後檢查是否要進教學
+                     playTTS(opt.word, () => {
+                         // 這裡檢查：如果剛剛那次按錯了(ID不同)，而且累積錯滿2次了
+                         if (opt.id !== currentQ.id && appState.game.currentQWrongCount >= 2) {
+                             triggerTeachingMode(currentQ);
+                         }
+                     });
                 };
+                // -----------------------
                 
                 optionsGrid.appendChild(btn);
             });
@@ -2398,32 +2411,23 @@
         }
 
 function triggerTeachingMode(questionObj) {
+            // 1. 設定狀態：進入教學模式，暫停遊戲計時
             appState.game.isTeachingMode = true;
-            clearInterval(appState.game.timer); // 暫停遊戲計時
+            clearInterval(appState.game.timer); 
             
-            // 開啟 Modal
+            // 2. 開啟 UI (此時 openModalById 不會自動播放)
             openModalById(questionObj.id);
             
-            // --- UI 控制 ---
+            // 3. 鎖定按鈕 (這是唯一的狀態提示，簡化視覺，避免衝突)
             const closeBtn = document.getElementById('modal-close-btn');
-            const levelLabel = document.getElementById('modal-level'); // 抓取左上角標籤
-            let originalLevelText = "";
-
-            // 1. 鎖定按鈕
+            
             if(closeBtn) {
                 closeBtn.disabled = true;
                 closeBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                closeBtn.innerText = "請仔細聆聽..."; 
+                closeBtn.innerText = "🔊 朗讀中... (請聆聽)"; 
             }
 
-            // 2. 修改左上角標籤為「聆聽中」
-            if(levelLabel) {
-                originalLevelText = levelLabel.innerText; // 先記住原本的等級(如: 初級)
-                levelLabel.innerText = "🔊 聆聽中...";
-                levelLabel.classList.add("text-blue-500", "animate-pulse"); // 加一點跳動效果提示
-            }
-
-            // --- 語音準備 ---
+            // 4. 準備播放序列
             const wordUtterance = new SpeechSynthesisUtterance(questionObj.word);
             wordUtterance.lang = 'en-US';
             wordUtterance.rate = 0.7;
@@ -2434,37 +2438,37 @@ function triggerTeachingMode(questionObj) {
             sentUtterance.rate = 0.7;
             if(preferredVoice) sentUtterance.voice = preferredVoice;
 
-            // --- 接力順序 ---
-            wordUtterance.onend = function() {
-                setTimeout(() => {
-                    window.speechSynthesis.speak(sentUtterance);
-                }, 500);
-            };
-
-            sentUtterance.onend = function() {
-                // 唸完後的復原工作
-                
-                // 1. 解鎖按鈕
+            // --- 定義解鎖函式 (避免重複寫) ---
+            const unlockButton = () => {
                 if(closeBtn) {
                     closeBtn.disabled = false;
                     closeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
                     closeBtn.innerText = "關閉 (回到遊戲)";
                 }
-
-                // 2. 左上角標籤復原 (變回原本等級，或是空白)
-                if(levelLabel) {
-                    levelLabel.innerText = originalLevelText; // 變回 "初級"
-                    // 如果您希望它唸完就「消失」，請把上面這行改成：
-                    // levelLabel.style.display = 'none'; 
-                    
-                    levelLabel.classList.remove("text-blue-500", "animate-pulse");
-                }
             };
 
-            // --- 開始播放 ---
-            window.speechSynthesis.cancel();
+            // --- 接力邏輯 ---
+            wordUtterance.onend = function() {
+                // 單字唸完 -> 0.5秒後 -> 唸例句
+                setTimeout(() => {
+                    window.speechSynthesis.speak(sentUtterance);
+                }, 500);
+            };
+
+            // 例句唸完 -> 解鎖
+            sentUtterance.onend = function() {
+                unlockButton();
+            };
+
+            // 【關鍵保險】：萬一語音出錯 (Error)，也要解鎖，不然學生會卡死在視窗裡
+            wordUtterance.onerror = unlockButton;
+            sentUtterance.onerror = unlockButton;
+
+            // 5. 啟動播放
+            window.speechSynthesis.cancel(); // 先切掉任何舊聲音
             window.speechSynthesis.speak(wordUtterance);
         }
+        
         function triggerFeedback(text, colorClass) {
             const container = document.getElementById('feedback-container');
             const el = document.createElement('div');
@@ -2801,6 +2805,7 @@ function playTTSSequence(word, sent) {
     </script>
 </body>
 </html>
+
 
 
 
