@@ -2418,23 +2418,23 @@ function triggerTeachingMode(questionObj) {
             // 2. 開啟 UI
             openModalById(questionObj.id);
             
-            // 3. 鎖定按鈕 & 設定左上角提示
+            // 3. 鎖定下方按鈕 (這是唯一的狀態提示)
             const closeBtn = document.getElementById('modal-close-btn');
-            const levelLabel = document.getElementById('modal-level'); 
-            let originalLevelText = ""; // 用來暫存原本的文字 (例如 "初級")
+            const xBtn = document.getElementById('modal-x-btn');
 
             if(closeBtn) {
                 closeBtn.disabled = true;
                 closeBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                // 按鈕文字變成提示，讓學生知道要聽
                 closeBtn.innerText = "🔊 朗讀中... (請聆聽)"; 
             }
 
-            // 設定左上角提示
-            if(levelLabel) {
-                originalLevelText = levelLabel.innerText; // ★ 關鍵：先把 "初級" 存起來
-                levelLabel.innerText = "🔊 朗讀中...";
-                levelLabel.classList.add("text-blue-500", "animate-pulse");
+            if(xBtn) {
+                xBtn.style.pointerEvents = 'none';
+                xBtn.style.opacity = '0.3';
             }
+
+            // (注意：這裡移除了控制 levelLabel 左上角標籤的程式碼，它會保持原樣)
 
             // 4. 準備播放序列
             const wordUtterance = new SpeechSynthesisUtterance(questionObj.word);
@@ -2448,18 +2448,18 @@ function triggerTeachingMode(questionObj) {
             if(preferredVoice) sentUtterance.voice = preferredVoice;
 
             // --- 定義解鎖函式 ---
-            const unlockButton = () => {
-                // 1. 解鎖下方按鈕
+            const unlockAll = () => {
+                // 解鎖下方按鈕
                 if(closeBtn) {
                     closeBtn.disabled = false;
                     closeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                    closeBtn.innerText = "關閉 (回到遊戲)";
+                    closeBtn.innerText = "關閉 (回到遊戲)"; // 變回關閉
                 }
                 
-                // 2. 【修正】還原左上角文字 (而不是隱藏它)
-                if(levelLabel) {
-                    levelLabel.innerText = originalLevelText; // ★ 把 "初級" 放回去
-                    levelLabel.classList.remove("text-blue-500", "animate-pulse"); // 移除特效
+                // 解鎖 X 按鈕
+                if(xBtn) {
+                    xBtn.style.pointerEvents = 'auto';
+                    xBtn.style.opacity = '1';
                 }
             };
 
@@ -2470,14 +2470,13 @@ function triggerTeachingMode(questionObj) {
                 }, 500);
             };
 
-            // 例句唸完 -> 還原
             sentUtterance.onend = function() {
-                unlockButton();
+                unlockAll();
             };
 
             // 安全保險
-            wordUtterance.onerror = unlockButton;
-            sentUtterance.onerror = unlockButton;
+            wordUtterance.onerror = unlockAll;
+            sentUtterance.onerror = unlockAll;
 
             // 5. 啟動播放
             window.speechSynthesis.cancel();
@@ -2820,6 +2819,7 @@ function playTTSSequence(word, sent) {
     </script>
 </body>
 </html>
+
 
 
 
