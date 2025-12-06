@@ -2411,32 +2411,36 @@ function nextQuestion() {
         }
 
 function triggerTeachingMode(questionObj) {
-            // 1. 設定狀態
             appState.game.isTeachingMode = true;
             clearInterval(appState.game.timer); 
             
-            // 2. 開啟 UI
             openModalById(questionObj.id);
             
-            // 3. 鎖定下方按鈕 (這是唯一的狀態提示)
             const closeBtn = document.getElementById('modal-close-btn');
             const xBtn = document.getElementById('modal-x-btn');
+            const sentSpeakerBtn = document.getElementById('modal-sent-speaker'); 
 
+            // 鎖定下方按鈕
             if(closeBtn) {
                 closeBtn.disabled = true;
                 closeBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                // 按鈕文字變成提示，讓學生知道要聽
                 closeBtn.innerText = "🔊 朗讀中... (請聆聽)"; 
             }
 
+            // 鎖定右上角 X
             if(xBtn) {
                 xBtn.style.pointerEvents = 'none';
                 xBtn.style.opacity = '0.3';
             }
 
-            // (注意：這裡移除了控制 levelLabel 左上角標籤的程式碼，它會保持原樣)
+            // 修改例句按鈕文字為「朗讀中」
+            if(sentSpeakerBtn) {
+                sentSpeakerBtn.innerHTML = '<i class="fa-solid fa-volume-high fa-beat"></i> 朗讀中...';
+                sentSpeakerBtn.classList.add('text-orange-500');
+                sentSpeakerBtn.style.pointerEvents = 'none';
+            }
 
-            // 4. 準備播放序列
+            // 語音準備
             const wordUtterance = new SpeechSynthesisUtterance(questionObj.word);
             wordUtterance.lang = 'en-US';
             wordUtterance.rate = 0.7;
@@ -2447,23 +2451,27 @@ function triggerTeachingMode(questionObj) {
             sentUtterance.rate = 0.7;
             if(preferredVoice) sentUtterance.voice = preferredVoice;
 
-            // --- 定義解鎖函式 ---
+            // --- 解鎖函式 ---
             const unlockAll = () => {
-                // 解鎖下方按鈕
                 if(closeBtn) {
                     closeBtn.disabled = false;
                     closeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                    closeBtn.innerText = "關閉 (回到遊戲)"; // 變回關閉
+                    closeBtn.innerText = "關閉 (回到遊戲)"; 
                 }
                 
-                // 解鎖 X 按鈕
                 if(xBtn) {
                     xBtn.style.pointerEvents = 'auto';
                     xBtn.style.opacity = '1';
                 }
+
+                // 👇👇👇【修改】唸完後，直接把這個按鈕隱藏起來 👇👇👇
+                if(sentSpeakerBtn) {
+                    sentSpeakerBtn.style.display = 'none'; // 隱藏按鈕
+                }
+                // 👆👆👆 修改結束 👆👆👆
             };
 
-            // --- 接力邏輯 ---
+            // 接力邏輯
             wordUtterance.onend = function() {
                 setTimeout(() => {
                     window.speechSynthesis.speak(sentUtterance);
@@ -2474,11 +2482,9 @@ function triggerTeachingMode(questionObj) {
                 unlockAll();
             };
 
-            // 安全保險
             wordUtterance.onerror = unlockAll;
             sentUtterance.onerror = unlockAll;
 
-            // 5. 啟動播放
             window.speechSynthesis.cancel();
             window.speechSynthesis.speak(wordUtterance);
         }
@@ -2663,12 +2669,13 @@ function triggerTeachingMode(questionObj) {
         let currentModalWord = '';
         let currentModalSent = '';
 
-        function openModalById(id) {
+function openModalById(id) {
             const item = vocabularyData.find(i => i.id === id);
             if (!item) return;
 
             const displayLevel = levelMap[item.level] || item.level;
 
+            // 填入內容
             document.getElementById('modal-emoji').innerText = item.emoji;
             document.getElementById('modal-word').innerText = item.word;
             document.getElementById('modal-level').innerText = displayLevel;
@@ -2689,39 +2696,26 @@ function triggerTeachingMode(questionObj) {
             currentModalWord = item.word;
             currentModalSent = item.sent;
 
+            // 顯示 Modal
             modal.style.display = 'block';
-
-            // 3. Forced Listening Logic
-            const btnCloseX = document.getElementById('modal-close-x');
-            const btnCloseBottom = document.getElementById('modal-close-btn');
-            const listeningStatus = document.getElementById('modal-listening-status');
-
-            if (appState.game.isTeachingMode) {
-                // Lock
-                if(btnCloseX) {
-                    btnCloseX.style.pointerEvents = 'none';
-                    btnCloseX.style.opacity = '0.3';
-                }
-                if(btnCloseBottom) {
-                    btnCloseBottom.disabled = true;
-                    btnCloseBottom.classList.add('opacity-50', 'cursor-not-allowed');
-                }
-                if(listeningStatus) listeningStatus.style.display = 'inline-block';
-            } else {
-                // Ensure unlocked if not in teaching mode
-                if(btnCloseX) {
-                    btnCloseX.style.pointerEvents = 'auto';
-                    btnCloseX.style.opacity = '1';
-                }
-                if(btnCloseBottom) {
-                    btnCloseBottom.disabled = false;
-                    btnCloseBottom.classList.remove('opacity-50', 'cursor-not-allowed');
-                }
-                if(listeningStatus) listeningStatus.style.display = 'none';
+            
+            // 重置「關閉按鈕」狀態
+            const closeBtn = document.getElementById('modal-close-btn');
+            if(closeBtn) {
+                closeBtn.disabled = false;
+                closeBtn.innerText = "關閉";
+                closeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
             }
 
-            // Auto Play Sequence
-            playTTSSequence(item.word, item.sent);
+            // 👇👇👇【新增】重置「例句喇叭按鈕」為顯示狀態 👇👇👇
+            const sentSpeakerBtn = document.getElementById('modal-sent-speaker');
+            if(sentSpeakerBtn) {
+                sentSpeakerBtn.style.display = 'flex'; // 恢復顯示
+                sentSpeakerBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i> 朗讀例句'; // 恢復文字
+                sentSpeakerBtn.classList.remove('text-orange-500');
+                sentSpeakerBtn.style.pointerEvents = 'auto';
+            }
+            // 👆👆👆 新增結束 👆👆👆
         }
 
 function playTTSSequence(word, sent) {
@@ -2819,6 +2813,7 @@ function playTTSSequence(word, sent) {
     </script>
 </body>
 </html>
+
 
 
 
