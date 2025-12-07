@@ -2831,11 +2831,73 @@ function playTTSSequence(word, sent) {
 
         function speakModalWord() { playTTS(currentModalWord); }
         function speakModalSent() { playTTS(currentModalSent); }
-// 補上遺失的 wait 函式
+// --- 補上成績上傳的核心功能 ---
+
+        // 1. 等待函式 (用於延遲重試)
         const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        // 2. 上傳成績函式
+        async function sendScoreToGoogleSheets(data) {
+            const maxRetries = 5;
+            let attempt = 0;
+            let success = false;
+            
+            // 鎖定「再玩一次」按鈕
+            const btnPlayAgain = document.getElementById('btn-play-again');
+            const originalBtnText = btnPlayAgain ? btnPlayAgain.innerHTML : '';
+            
+            if (btnPlayAgain) {
+                btnPlayAgain.disabled = true; 
+                btnPlayAgain.classList.add('opacity-50', 'cursor-not-allowed');
+                btnPlayAgain.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 成績上傳中...';
+            }
+
+            // 隨機延遲 (避免塞車)
+            const initialDelay = Math.random() * 3000; 
+            await wait(initialDelay);
+
+            // 開始嘗試上傳
+            while (attempt < maxRetries && !success) {
+                try {
+                    attempt++;
+                    const params = new URLSearchParams(data).toString();
+                    const url = `${GOOGLE_SCRIPT_URL}?${params}`;
+
+                    await fetch(url, { method: 'GET', mode: 'no-cors' });
+
+                    success = true;
+                    
+                    // 顯示成功訊息 (綠色雲朵)
+                    const resultInfo = document.getElementById('result-info');
+                    const saveStatus = document.getElementById('save-status');
+                    
+                    // 優先使用專屬的 save-status 區塊顯示
+                    if (saveStatus) {
+                        saveStatus.innerHTML = '<span class="text-green-500 animate-pop"><i class="fa-solid fa-cloud-arrow-up"></i> 成績已存檔</span>';
+                    } else if (resultInfo && !resultInfo.innerHTML.includes('成績已存檔')) {
+                        // 如果沒有 save-status，才加在 result-info 後面 (備用方案)
+                        resultInfo.innerHTML += ' <span class="text-green-500 font-bold ml-2 animate-pop"><i class="fa-solid fa-cloud-arrow-up"></i> 成績已存檔</span>';
+                    }
+
+                } catch (error) {
+                    console.error(`上傳失敗，第 ${attempt} 次重試...`, error);
+                    if (attempt < maxRetries) {
+                        await wait(3000 + Math.random() * 2000);
+                    }
+                }
+            }
+
+            // 恢復按鈕
+            if (btnPlayAgain) {
+                btnPlayAgain.disabled = false;
+                btnPlayAgain.classList.remove('opacity-50', 'cursor-not-allowed');
+                btnPlayAgain.innerHTML = originalBtnText;
+            }
+        }
     </script>
 </body>
 </html>
+
 
 
 
