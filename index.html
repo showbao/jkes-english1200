@@ -2033,7 +2033,7 @@
                         <div class="vocab-front group">
                             <span class="text-8xl mb-6 transform group-hover:scale-110 transition">${item.emoji}</span>
                             <h3 class="text-4xl font-bold text-gray-700">${item.word}</h3>
-                            <button onclick="event.stopPropagation(); playTTS(${item.id}, 'word')" class="mt-6 w-12 h-12 rounded-full bg-blue-100 text-blue-500 hover:bg-blue-500 hover:text-white transition flex items-center justify-center text-xl">
+                            <button onclick="event.stopPropagation(); playTTS('${item.word.replace(/'/g, "\\'")}')" class="mt-6 w-12 h-12 rounded-full bg-blue-100 text-blue-500 hover:bg-blue-500 hover:text-white transition flex items-center justify-center text-xl">
                                 <i class="fa-solid fa-volume-high"></i>
                             </button>
                         </div>
@@ -2050,10 +2050,10 @@
                             </div>
                             
                              <div class="flex gap-2 justify-center mt-4 w-full">
-                                <button onclick="event.stopPropagation(); playTTS(${item.id}, 'word')" class="flex-1 py-3 bg-gray-100 rounded-xl text-gray-600 font-bold hover:bg-blue-100 text-sm">
+                                <button onclick="event.stopPropagation(); playTTS('${item.word.replace(/'/g, "\\'")}')" class="flex-1 py-3 bg-gray-100 rounded-xl text-gray-600 font-bold hover:bg-blue-100 text-sm">
                                     <i class="fa-solid fa-volume-high"></i> 單字
                                 </button>
-                                <button onclick="event.stopPropagation(); playTTS(${item.id}, 'sent')" class="flex-1 py-3 bg-gray-100 rounded-xl text-gray-600 font-bold hover:bg-yellow-100 text-sm">
+                                <button onclick="event.stopPropagation(); playTTS('${item.sent.replace(/'/g, "\\'")}')" class="flex-1 py-3 bg-gray-100 rounded-xl text-gray-600 font-bold hover:bg-yellow-100 text-sm">
                                     <i class="fa-solid fa-volume-high"></i> 例句
                                 </button>
                             </div>
@@ -2443,7 +2443,7 @@ function triggerTeachingMode(questionObj) {
             appState.game.isTeachingMode = true;
             clearInterval(appState.game.timer); 
             
-            openModalById(questionObj.id);
+            openModalById(questionObj.id, questionObj.level);
             
             const closeBtn = document.getElementById('modal-close-btn');
             const xBtn = document.getElementById('modal-x-btn');
@@ -2636,7 +2636,7 @@ function showResults() {
                 list.innerHTML = `<div class="col-span-full text-center text-green-500 text-xl font-bold py-4">太棒了！這次沒有答錯任何題目！🎉</div>`;
             } else {
                 list.innerHTML = appState.game.mistakes.map(item => `
-                    <button onclick="openModalById(${item.id})" class="flex items-center gap-3 bg-red-50 p-3 rounded-xl border border-red-100 hover:bg-red-100 w-full text-left transition">
+                    <button onclick="openModalById(${item.id}, '${item.level}')" class="flex items-center gap-3 bg-red-50 p-3 rounded-xl border border-red-100 hover:bg-red-100 w-full text-left transition">
                         <span class="text-3xl">${item.emoji}</span>
                         <div>
                             <div class="font-bold text-gray-700 text-lg">${item.word}</div>
@@ -2668,13 +2668,23 @@ function showResults() {
         let currentModalWord = '';
         let currentModalSent = '';
 
-function openModalById(id) {
-            const item = vocabularyData.find(i => i.id === id);
+// 修改：增加 targetLevel 參數，預設為 null
+        function openModalById(id, targetLevel = null) {
+            
+            // 關鍵修改：如果有指定等級，就同時比對 ID 和 Level
+            let item;
+            if (targetLevel) {
+                item = vocabularyData.find(i => i.id === id && i.level === targetLevel);
+            } else {
+                // 如果沒指定 (相容舊程式碼)，還是只找 ID (風險較高但維持相容性)
+                item = vocabularyData.find(i => i.id === id);
+            }
+            
             if (!item) return;
 
             const displayLevel = levelMap[item.level] || item.level;
 
-            // 填入內容
+            // ... (以下內容完全不用動) ...
             document.getElementById('modal-emoji').innerText = item.emoji;
             document.getElementById('modal-word').innerText = item.word;
             document.getElementById('modal-level').innerText = displayLevel;
@@ -2695,10 +2705,8 @@ function openModalById(id) {
             currentModalWord = item.word;
             currentModalSent = item.sent;
 
-            // 顯示 Modal
             modal.style.display = 'block';
             
-            // 重置「關閉按鈕」狀態
             const closeBtn = document.getElementById('modal-close-btn');
             if(closeBtn) {
                 closeBtn.disabled = false;
@@ -2706,15 +2714,18 @@ function openModalById(id) {
                 closeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
             }
 
-            // 👇👇👇【新增】重置「例句喇叭按鈕」為顯示狀態 👇👇👇
             const sentSpeakerBtn = document.getElementById('modal-sent-speaker');
             if(sentSpeakerBtn) {
-                sentSpeakerBtn.style.display = 'flex'; // 恢復顯示
-                sentSpeakerBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i> 朗讀例句'; // 恢復文字
+                sentSpeakerBtn.style.display = 'flex';
+                sentSpeakerBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i> 朗讀例句';
                 sentSpeakerBtn.classList.remove('text-orange-500');
                 sentSpeakerBtn.style.pointerEvents = 'auto';
             }
-            // 👆👆👆 新增結束 👆👆👆
+
+            // 【重要】這裡改成直接傳文字給 playTTS，避免又去查表查錯
+            const safeWord = item.word.replace(/'/g, "\\'");
+            const safeSent = item.sent.replace(/'/g, "\\'");
+            playTTSSequence(item.word, item.sent);
         }
 
 function playTTSSequence(word, sent) {
