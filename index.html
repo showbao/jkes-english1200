@@ -2831,10 +2831,12 @@ function playTTSSequence(word, sent) {
 
         function speakModalWord() { playTTS(currentModalWord); }
         function speakModalSent() { playTTS(currentModalSent); }
-
+// 補上遺失的 wait 函式
+        const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
     </script>
 </body>
 </html>
+
 
 
 
