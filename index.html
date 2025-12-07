@@ -2793,36 +2793,30 @@ function playTTSSequence(word, sent) {
             }
         }
 
-function playTTS(input, typeOrCallback = null) {
+// 優化後的 playTTS：只專注處理文字發音，不再負責查表
+        function playTTS(text, onEndCallback = null) {
             if (!('speechSynthesis' in window)) return;
 
-            let textToSpeak = input;
-            let onEndCallback = null;
-
-            // 邏輯判斷：如果 input 是數字 (ID)，就去資料庫查字
-            if (typeof input === 'number') {
-                const item = vocabularyData.find(i => i.id === input);
-                if (item) {
-                    // 根據第二個參數 type ('word' 或 'sent') 決定唸什麼
-                    if (typeOrCallback === 'word') textToSpeak = item.word;
-                    else if (typeOrCallback === 'sent') textToSpeak = item.sent;
-                }
-            } else {
-                // 如果不是數字，就假設 input 本身就是文字
-                // 此時第二個參數可能是 callback
-                if (typeof typeOrCallback === 'function') {
-                    onEndCallback = typeOrCallback;
-                }
+            // 如果傳進來的是 callback (相容舊寫法)，就調整參數
+            if (typeof text === 'function') {
+                // 這是不正常的呼叫，忽略
+                return;
             }
 
-            // 開始播放
+            // 如果第二個參數是字串 'word'/'sent' (舊寫法殘留)，我們不需要它了
+            // 因為現在第一個參數 text 就已經是正確的文字內容
+            
+            // 確保 text 是字串 (避免傳入 null 或 undefined)
+            const textToSpeak = String(text);
+
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(textToSpeak);
             utterance.lang = 'en-US';
             utterance.rate = 0.7; 
             if (preferredVoice) utterance.voice = preferredVoice;
             
-            if (onEndCallback) {
+            // 處理 callback (例如：唸完後要觸發教學模式)
+            if (typeof onEndCallback === 'function') {
                 utterance.onend = onEndCallback;
             }
             
