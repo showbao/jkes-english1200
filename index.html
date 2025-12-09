@@ -661,8 +661,8 @@ let learningQuizData = [];
                 return;
             }
 
-            // 2. 隨機挑選最多 3 個字來考
-            const quizWords = learned.sort(() => 0.5 - Math.random()).slice(0, 3);
+            // 2. 隨機挑選最多 10 個字來考
+            const quizWords = learned.sort(() => 0.5 - Math.random()).slice(0, 10);
             
             // 3. 準備題目資料
             learningQuizData = quizWords.map(wordStr => {
@@ -3307,5 +3307,6 @@ function interactCard(word, el) {
     </div>
 </body>
 </html>
+
 
 
