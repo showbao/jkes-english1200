@@ -307,17 +307,17 @@
                 <img src="https://hitscounter.dev/api/hit?url=https%3A%2F%2Fshowbao.github.io%2Fjkes-english1200%2F&label=造訪人次&icon=file-earmark-person&color=%236ea8fe&message=&style=flat-square&tz=Asia%2FTaipei">
             </div>
 
-            <nav class="flex gap-2">
-                <button onclick="resetAndGoHome()" class="btn-pastel btn-yellow px-3 py-2 md:px-4 md:py-2 rounded-xl font-bold text-sm md:text-base whitespace-nowrap">
-                    <i class="fa-solid fa-house"></i> 首頁
-                </button>
-                <button onclick="showSection('learn-section')" class="btn-pastel btn-blue px-3 py-2 md:px-4 md:py-2 rounded-xl font-bold text-sm md:text-base whitespace-nowrap">
-                    <i class="fa-solid fa-book-open"></i> 學習單字
-                </button>
-                <button onclick="showSection('game-setup-section')" class="btn-pastel btn-pink px-3 py-2 md:px-4 md:py-2 rounded-xl font-bold text-sm md:text-base whitespace-nowrap">
-                    <i class="fa-solid fa-gamepad"></i> 檢測單字
-                </button>
-            </nav>
+<nav class="flex gap-2">
+    <button onclick="handleNavigation('home')" class="btn-pastel btn-yellow px-3 py-2 md:px-4 md:py-2 rounded-xl font-bold text-sm md:text-base whitespace-nowrap">
+        <i class="fa-solid fa-house"></i> 首頁
+    </button>
+    <button onclick="handleNavigation('learn')" class="btn-pastel btn-blue px-3 py-2 md:px-4 md:py-2 rounded-xl font-bold text-sm md:text-base whitespace-nowrap">
+        <i class="fa-solid fa-book-open"></i> 學習單字
+    </button>
+    <button onclick="handleNavigation('game')" class="btn-pastel btn-pink px-3 py-2 md:px-4 md:py-2 rounded-xl font-bold text-sm md:text-base whitespace-nowrap">
+        <i class="fa-solid fa-gamepad"></i> 檢測單字
+    </button>
+</nav>
         </div>
 
     </header>
@@ -331,14 +331,14 @@
                 <div class="text-6xl mb-4">🎈</div>
                 <h2 class="text-2xl md:text-4xl font-bold mb-4 text-gray-700 whitespace-nowrap">歡迎來到英語單字樂園！</h2>
                 <p class="text-xl text-gray-500 mb-8">Ready to learn?</p>
-                <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    <button onclick="showSection('learn-section')" class="btn-pastel btn-blue text-2xl px-8 py-4 rounded-2xl w-full sm:w-auto">
-                        📖 學習單字
-                    </button>
-                    <button onclick="showSection('game-setup-section')" class="btn-pastel btn-pink text-2xl px-8 py-4 rounded-2xl w-full sm:w-auto">
-                        🎮 檢測單字
-                    </button>
-                </div>
+<div class="flex flex-col sm:flex-row gap-4 justify-center">
+    <button onclick="handleNavigation('learn')" class="btn-pastel btn-blue text-2xl px-8 py-4 rounded-2xl w-full sm:w-auto">
+        📖 學習單字
+    </button>
+    <button onclick="handleNavigation('game')" class="btn-pastel btn-pink text-2xl px-8 py-4 rounded-2xl w-full sm:w-auto">
+        🎮 檢測單字
+    </button>
+</div>
                 <div class="mt-8 text-sm text-gray-400 bg-gray-50 py-2 px-4 rounded-full inline-flex items-center gap-2 border border-gray-100">
                     <i class="fa-brands fa-chrome text-blue-400"></i>
                     <span>本網站音訊功能建議使用 <b>Chrome</b> 或 <b>Edge</b> 瀏覽器</span>
@@ -643,6 +643,295 @@
         // 1. Data Structure & Config
         // ----------------------------------------------------
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw0MTm4MhMyCLFXJ1eEQ0CBJgsc59HYVC2bpKoNYEjKtiolwg9sfo92K8tSleC9tKfI/exec';
+
+// ============================================
+        //  學習歷程追蹤系統 (New Learning Tracker)
+        // ============================================
+
+let learningQuizData = [];
+        let learningQuizIndex = 0;
+
+        function startLearningQuiz() {
+            // 1. 從「本次學過的字 (learnedWords)」中挑選
+            const learned = Array.from(appState.learning.learnedWords);
+            
+            // 如果沒學任何字，直接跳過去結算
+            if (learned.length === 0) {
+                showLearningSummary();
+                return;
+            }
+
+            // 2. 隨機挑選最多 3 個字來考
+            const quizWords = learned.sort(() => 0.5 - Math.random()).slice(0, 3);
+            
+            // 3. 準備題目資料
+            learningQuizData = quizWords.map(wordStr => {
+                // 找出原始資料 (為了拿中文解釋)
+                const correctItem = vocabularyData.find(v => v.word === wordStr);
+                if (!correctItem) return null;
+
+                // 找 3 個錯誤選項 (干擾項)
+                const distractors = vocabularyData
+                    .filter(v => v.id !== correctItem.id)
+                    .sort(() => 0.5 - Math.random())
+                    .slice(0, 3)
+                    .map(v => v.zh); 
+
+                return {
+                    question: correctItem.word,
+                    answer: correctItem.zh,
+                    options: [...distractors, correctItem.zh].sort(() => 0.5 - Math.random())
+                };
+            }).filter(q => q !== null);
+
+            if (learningQuizData.length === 0) {
+                showLearningSummary();
+                return;
+            }
+
+            // 4. 開始測驗
+            learningQuizIndex = 0;
+            appState.learning.quizScore = 0;
+            document.getElementById('learning-quiz-modal').style.display = 'block';
+            renderLearningQuizQuestion();
+        }
+
+function renderLearningQuizQuestion() {
+            const q = learningQuizData[learningQuizIndex];
+            
+            // 更新進度與題目
+            document.getElementById('lq-current').innerText = learningQuizIndex + 1;
+            document.getElementById('lq-total').innerText = learningQuizData.length;
+            document.getElementById('lq-question').innerText = q.question;
+            
+            // 👇👇👇 新增：題目出現時，自動朗讀單字 👇👇👇
+            // 使用 playTTS，但要小心不要觸發「學習紀錄」(傳入 false 或 null 作為 callback)
+            // 這裡我們直接用 SpeechSynthesis 比較乾淨，或者用 playTTS 但確保不會重複記
+            // 因為現在是測驗模式，appState.learning.isActive 還是 true，所以直接用 playTTS 會被記下來
+            // 建議直接呼叫底層 API 避免干擾紀錄
+            const utterance = new SpeechSynthesisUtterance(q.question);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.7;
+            if (preferredVoice) utterance.voice = preferredVoice;
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(utterance);
+            // 👆👆👆 新增結束 👆👆👆
+
+            // 產生選項按鈕
+            const optionsDiv = document.getElementById('lq-options');
+            optionsDiv.innerHTML = '';
+
+            q.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = "w-full py-3 h-auto min-h-[3rem] whitespace-normal leading-tight rounded-xl bg-gray-50 border-2 border-gray-100 text-gray-600 font-bold hover:bg-blue-50 hover:border-blue-200 transition text-lg flex items-center justify-center";
+                btn.innerText = opt;
+                // 傳入 btn 元素以便變色
+                btn.onclick = () => checkLearningQuizAnswer(opt, q.answer, btn);
+                optionsDiv.appendChild(btn);
+            });
+        }
+function checkLearningQuizAnswer(selected, correct, btnElement) {
+            // 鎖定所有按鈕
+            const allBtns = document.getElementById('lq-options').querySelectorAll('button');
+            allBtns.forEach(b => b.disabled = true);
+
+            let feedbackText = "";
+            let feedbackHtml = "";
+
+            if (selected === correct) {
+                appState.learning.quizScore++;
+                btnElement.classList.replace('bg-gray-50', 'bg-green-100');
+                btnElement.classList.replace('border-gray-100', 'border-green-400');
+                btnElement.classList.add('text-green-700');
+                feedbackText = "Correct!"; 
+                // 綠色勾勾動畫
+                feedbackHtml = '<div class="text-6xl text-green-500 font-bold animate-pop drop-shadow-lg" style="text-shadow: 2px 2px 0 #fff;">Correct!</div>';
+            } else {
+                btnElement.classList.replace('bg-gray-50', 'bg-red-100');
+                btnElement.classList.replace('border-gray-100', 'border-red-400');
+                btnElement.classList.add('text-red-700');
+                feedbackText = "Wrong!";
+                // 紅色叉叉動畫
+                feedbackHtml = '<div class="text-6xl text-red-500 font-bold animate-pop drop-shadow-lg" style="text-shadow: 2px 2px 0 #fff;">Oops!</div>';
+                
+                // 標示正確答案
+                allBtns.forEach(b => {
+                    if(b.innerText === correct) {
+                        b.classList.replace('bg-gray-50', 'bg-green-100');
+                        b.classList.replace('border-gray-100', 'border-green-400');
+                        b.classList.add('text-green-700');
+                    }
+                });
+            }
+
+            // 顯示視覺回饋
+            const fbArea = document.getElementById('lq-feedback-area');
+            if (fbArea) {
+                fbArea.innerHTML = feedbackHtml;
+                // 1秒後清除
+                setTimeout(() => { fbArea.innerHTML = ''; }, 1000);
+            }
+
+            // 播放音效
+            const utterance = new SpeechSynthesisUtterance(feedbackText);
+            utterance.lang = 'en-US';
+            utterance.rate = 1.0; 
+            if (preferredVoice) utterance.voice = preferredVoice;
+            window.speechSynthesis.speak(utterance);
+
+            // 延遲後進入下一題
+            setTimeout(() => {
+                learningQuizIndex++;
+                if (learningQuizIndex < learningQuizData.length) {
+                    renderLearningQuizQuestion();
+                } else {
+                    document.getElementById('learning-quiz-modal').style.display = 'none';
+                    showLearningSummary();
+                }
+            }, 1200);
+        }
+
+        // 1. 導覽控制器 (攔截所有跳轉)
+        function handleNavigation(target) {
+            // 如果正在學習模式，且想離開 (去首頁或去遊戲)
+            if (appState.learning.isActive && (target === 'home' || target === 'game')) {
+                appState.learning.pendingNavigation = target; // 記住他想去哪
+                startLearningQuiz();
+                return;
+            }
+
+            // 正常跳轉邏輯
+            if (target === 'home') {
+                resetAndGoHome();
+            } else if (target === 'learn') {
+                // 如果要去學習，先開登錄視窗
+                document.getElementById('learning-login-modal').style.display = 'block';
+                document.getElementById('learning-student-id').focus();
+            } else if (target === 'game') {
+                showSection('game-setup-section');
+            }
+        }
+
+        // 2. 登錄相關
+        function closeLearningLogin() {
+            document.getElementById('learning-login-modal').style.display = 'none';
+        }
+function confirmLearningLogin() {
+            const studentId = document.getElementById('learning-student-id').value.trim();
+            if (!studentId || studentId.length < 3) {
+                alert("請輸入正確的班級座號！");
+                return;
+            }
+
+            appState.learning.isActive = true;
+            appState.learning.studentId = studentId;
+            appState.learning.startTime = Date.now();
+            appState.learning.learnedWords.clear();
+            appState.learning.sheetData.clear();
+            appState.learning.quizScore = 0; // 🆕 歸零
+            
+            closeLearningLogin();
+            showSection('learn-section');
+        }
+        // 3. 卡片互動追蹤 (翻面時觸發)
+        function interactCard(word, el) {
+            if (appState.learning.isActive) {
+                appState.learning.learnedWords.add(word);
+            }
+            toggleFlip(el); // 呼叫原本的翻面函式
+        }
+
+function showLearningSummary() {
+            const modal = document.getElementById('learning-summary-modal');
+            const now = Date.now();
+            const durationMs = now - appState.learning.startTime;
+            
+            const minutes = Math.floor(durationMs / 60000);
+            const seconds = Math.floor((durationMs % 60000) / 1000);
+            const timeStr = `${minutes}分${seconds}秒`;
+            
+            // 準備數據 (雙軌制)
+            const uiList = Array.from(appState.learning.learnedWords); // UI只顯示單字
+            const uiCount = uiList.length;
+            const uploadList = Array.from(appState.learning.sheetData); // 上傳包含例句
+            
+            // 測驗成績字串
+            const hasQuiz = typeof learningQuizData !== 'undefined' && learningQuizData.length > 0;
+            const quizResultStr = hasQuiz ? `${appState.learning.quizScore}/${learningQuizData.length}` : "無";
+
+            // 更新 UI
+            document.getElementById('summary-duration').innerText = timeStr;
+            document.getElementById('summary-count').innerHTML = `
+                ${uiCount}
+                <div class="text-sm text-gray-500 font-normal mt-1 bg-white/50 rounded-lg px-2">
+                    測驗: <span class="${appState.learning.quizScore === learningQuizData.length ? 'text-green-600' : 'text-orange-500'} font-bold">${quizResultStr}</span>
+                </div>
+            `;
+            document.getElementById('summary-list').innerText = uiCount > 0 ? uiList.join(', ') : "(未點擊任何單字)";
+            
+            // 鎖定按鈕
+            const btn = document.getElementById('btn-leave-learning');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 資料上傳中...';
+            btn.classList.add('bg-gray-400', 'cursor-not-allowed');
+            btn.classList.remove('bg-green-500', 'hover:bg-green-600');
+
+            modal.style.display = 'block';
+
+            // 執行上傳
+            // 參數: 時間, 數量, "測驗成績"字串, "完整單字列表"字串
+            const finalNote = hasQuiz ? `[測驗:${quizResultStr}] ` : "";
+            const fullListString = finalNote + uploadList.join(', ');
+            
+            uploadLearningRecord(timeStr, uiCount, fullListString);
+        }
+
+        // 5. 上傳學習紀錄
+ async function uploadLearningRecord(duration, count, listString) {
+            const data = {
+                type: 'learn', 
+                student: appState.learning.studentId,
+                duration: duration,
+                wordCount: count,
+                wordList: listString // 直接傳送已經組好的字串
+            };
+
+            const statusDiv = document.getElementById('learning-save-status');
+            statusDiv.innerHTML = '<span class="text-gray-400"><i class="fa-solid fa-spinner fa-spin"></i> 雲端存檔中...</span>';
+
+            await wait(Math.random() * 2000);
+
+            try {
+                const params = new URLSearchParams(data).toString();
+                const url = `${GOOGLE_SCRIPT_URL}?${params}`;
+                await fetch(url, { method: 'GET', mode: 'no-cors' });
+
+                statusDiv.innerHTML = '<span class="text-green-500 font-bold animate-pop"><i class="fa-solid fa-cloud-arrow-up"></i> 學習歷程已存檔！</span>';
+                
+                const btn = document.getElementById('btn-leave-learning');
+                btn.disabled = false;
+                btn.innerText = "確認離開";
+                btn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                btn.classList.add('bg-green-500', 'hover:bg-green-600', 'text-white');
+
+            } catch (e) {
+                console.error("Upload failed", e);
+                statusDiv.innerHTML = '<span class="text-red-400">上傳失敗，請稍後再試</span>';
+                document.getElementById('btn-leave-learning').disabled = false;
+                document.getElementById('btn-leave-learning').innerText = "強制離開";
+            }
+        }
+
+        // 6. 正式離開
+        function finalizeLearningSession() {
+            document.getElementById('learning-summary-modal').style.display = 'none';
+            appState.learning.isActive = false; // 結束狀態
+            
+            // 執行原本想去的跳轉
+            const target = appState.learning.pendingNavigation;
+            if (target === 'home') resetAndGoHome();
+            else if (target === 'game') showSection('game-setup-section');
+        }
 
         // 模擬資料 (保留部分作為範例，實際使用時請替換為完整資料)
         const vocabularyData = [
@@ -1849,9 +2138,21 @@
         // ----------------------------------------------------
         // 2. Global State & Config
         // ----------------------------------------------------
-        const appState = {
+const appState = {
             currentSection: 'home-section',
             learnFilter: { level: 'Elementary', search: '', page: 1, itemsPerPage: 24 },
+            
+            // 👇 這一段是上次新增的，務必確保它存在 👇
+learning: {
+                isActive: false,     
+                studentId: '',       
+                startTime: 0,        
+                learnedWords: new Set(), 
+                sheetData: new Set(),    
+                pendingNavigation: null,
+                quizScore: 0 // 🆕 新增：紀錄測驗得分
+            },
+
             game: {
                 student: '',
                 mode: 'cloze',
@@ -1996,29 +2297,36 @@
             renderVocabulary();
         }
 
-        function renderVocabulary() {
+function renderVocabulary() {
+            // 防呆機制
+            if (!appState || !appState.learnFilter) return;
             const grid = document.getElementById('vocab-grid');
+            if (!grid) return;
+
             const filtered = vocabularyData.filter(item => {
                 const matchLevel = item.level === appState.learnFilter.level;
-                const searchStr = appState.learnFilter.search;
-                const matchSearch = item.word.toLowerCase().includes(searchStr); 
+                const searchStr = appState.learnFilter.search || '';
+                const wordText = item.word ? item.word.toLowerCase() : '';
+                const matchSearch = wordText.includes(searchStr); 
                 return matchLevel && matchSearch;
             });
 
             const totalItems = filtered.length;
-            const totalPages = Math.ceil(totalItems / appState.learnFilter.itemsPerPage);
+            const itemsPerPage = appState.learnFilter.itemsPerPage || 24;
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
             
             if (appState.learnFilter.page > totalPages && totalPages > 0) {
                 appState.learnFilter.page = totalPages;
             }
 
-            const startIndex = (appState.learnFilter.page - 1) * appState.learnFilter.itemsPerPage;
-            const endIndex = startIndex + appState.learnFilter.itemsPerPage;
+            const startIndex = (appState.learnFilter.page - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
             const pageItems = filtered.slice(startIndex, endIndex);
 
             if (totalItems === 0) {
                 grid.innerHTML = `<div class="col-span-full text-center py-20 text-gray-400 text-xl">此分類下沒有單字喔！🍃</div>`;
-                document.getElementById('pagination-controls').innerHTML = '';
+                const controls = document.getElementById('pagination-controls');
+                if(controls) controls.innerHTML = '';
                 return;
             }
 
@@ -2027,13 +2335,18 @@
                     ? `<div class="text-lg text-gray-500 mt-2 font-medium">其他解釋：${item.def}</div>` 
                     : '';
 
+                const safeWord = String(item.word || '').replace(/'/g, "\\'");
+                const safeSent = String(item.sent || '').replace(/'/g, "\\'");
+
+                // 👇👇👇 修改重點：playTTS 增加了第三個參數 '${safeWord}' 👇👇👇
+                // 這代表：不管按哪個喇叭，紀錄時都以 safeWord (單字) 為主
                 return `
-                <div class="vocab-card" id="card-${item.id}" onclick="toggleFlip(this)">
+                <div class="vocab-card" id="card-${item.id}" onclick="interactCard('${safeWord}', this)">
                     <div class="vocab-card-inner">
                         <div class="vocab-front group">
                             <span class="text-8xl mb-6 transform group-hover:scale-110 transition">${item.emoji}</span>
                             <h3 class="text-4xl font-bold text-gray-700">${item.word}</h3>
-                            <button onclick="event.stopPropagation(); playTTS('${item.word.replace(/'/g, "\\'")}')" class="mt-6 w-12 h-12 rounded-full bg-blue-100 text-blue-500 hover:bg-blue-500 hover:text-white transition flex items-center justify-center text-xl">
+                            <button onclick="event.stopPropagation(); playTTS('${safeWord}', null, '${safeWord}')" class="mt-6 w-12 h-12 rounded-full bg-blue-100 text-blue-500 hover:bg-blue-500 hover:text-white transition flex items-center justify-center text-xl">
                                 <i class="fa-solid fa-volume-high"></i>
                             </button>
                         </div>
@@ -2050,10 +2363,10 @@
                             </div>
                             
                              <div class="flex gap-2 justify-center mt-4 w-full">
-                                <button onclick="event.stopPropagation(); playTTS('${item.word.replace(/'/g, "\\'")}')" class="flex-1 py-3 bg-gray-100 rounded-xl text-gray-600 font-bold hover:bg-blue-100 text-sm">
+                                <button onclick="event.stopPropagation(); playTTS('${safeWord}', null, '${safeWord}')" class="flex-1 py-3 bg-gray-100 rounded-xl text-gray-600 font-bold hover:bg-blue-100 text-sm">
                                     <i class="fa-solid fa-volume-high"></i> 單字
                                 </button>
-                                <button onclick="event.stopPropagation(); playTTS('${item.sent.replace(/'/g, "\\'")}')" class="flex-1 py-3 bg-gray-100 rounded-xl text-gray-600 font-bold hover:bg-yellow-100 text-sm">
+                                <button onclick="event.stopPropagation(); playTTS('${safeSent}', null, '${safeWord}')" class="flex-1 py-3 bg-gray-100 rounded-xl text-gray-600 font-bold hover:bg-yellow-100 text-sm">
                                     <i class="fa-solid fa-volume-high"></i> 例句
                                 </button>
                             </div>
@@ -2729,6 +3042,7 @@ function showResults() {
         }
 
 function playTTSSequence(word, sent) {
+
              if (!('speechSynthesis' in window)) return;
              
              // 1. 停止之前的聲音
@@ -2793,30 +3107,43 @@ function playTTSSequence(word, sent) {
             }
         }
 
-// 優化後的 playTTS：只專注處理文字發音，不再負責查表
-        function playTTS(text, onEndCallback = null) {
+// 修改：增加 trackingWord 參數
+// 修改：增加 trackingWord 參數 (用來記錄該句子屬於哪個單字)
+        function playTTS(input, typeOrCallback = null, trackingWord = null) {
+            
+            // --- 1. 學習歷程紀錄邏輯 (修復這裡！) ---
+            if (appState.learning && appState.learning.isActive) {
+                // 處理 input (要唸的內容) -> 存入 sheetData (給老師看，包含例句)
+                // 因為現在都傳文字了，直接轉字串存入
+                let contentToLog = String(input);
+                appState.learning.sheetData.add(contentToLog);
+
+                // 處理 trackingWord (歸屬單字) -> 存入 learnedWords (給學生看，只看單字)
+                // 如果有傳入 trackingWord (例如唸例句時)，就記 trackingWord
+                // 如果沒傳入 (例如點正面單字)，就記 input 本身
+                const uiWord = trackingWord || contentToLog;
+                appState.learning.learnedWords.add(uiWord);
+            }
+            // -----------------------------------
+
             if (!('speechSynthesis' in window)) return;
 
-            // 如果傳進來的是 callback (相容舊寫法)，就調整參數
-            if (typeof text === 'function') {
-                // 這是不正常的呼叫，忽略
-                return;
+            let textToSpeak = input;
+            let onEndCallback = null;
+
+            // 判斷是否為 callback (相容舊程式碼)
+            if (typeof typeOrCallback === 'function') {
+                onEndCallback = typeOrCallback;
             }
 
-            // 如果第二個參數是字串 'word'/'sent' (舊寫法殘留)，我們不需要它了
-            // 因為現在第一個參數 text 就已經是正確的文字內容
-            
-            // 確保 text 是字串 (避免傳入 null 或 undefined)
-            const textToSpeak = String(text);
-
+            // 開始播放
             window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(textToSpeak);
+            const utterance = new SpeechSynthesisUtterance(String(textToSpeak));
             utterance.lang = 'en-US';
             utterance.rate = 0.7; 
             if (preferredVoice) utterance.voice = preferredVoice;
             
-            // 處理 callback (例如：唸完後要觸發教學模式)
-            if (typeof onEndCallback === 'function') {
+            if (onEndCallback) {
                 utterance.onend = onEndCallback;
             }
             
@@ -2894,18 +3221,89 @@ function playTTSSequence(word, sent) {
                 btnPlayAgain.innerHTML = originalBtnText;
             }
         }
+
+function interactCard(word, el) {
+            // 如果是在學習模式
+            if (appState.learning && appState.learning.isActive) {
+                // 軌道 A (學生看): 紀錄單字
+                appState.learning.learnedWords.add(word);
+                // 軌道 B (上傳用): 紀錄單字
+                appState.learning.sheetData.add(word);
+            }
+            toggleFlip(el);
+        }
     </script>
+<div id="learning-login-modal" class="modal">
+        <div class="modal-content w-11/12 max-w-md mx-auto mt-32 p-8 rounded-3xl text-center relative">
+            <h3 class="text-2xl font-bold text-gray-700 mb-4">📚 準備開始學習</h3>
+            <p class="text-red-500 font-bold mb-6 text-sm bg-red-50 p-3 rounded-xl text-left border border-red-100">
+                <i class="fa-solid fa-triangle-exclamation"></i> 注意事項：<br>
+                離開時請務必按下【<i class="fa-solid fa-house"></i> 回首頁】或切換按鈕，系統才會紀錄您的學習時間與歷程喔！
+            </p>
+            
+            <div class="mb-6">
+                <label class="block text-gray-500 text-sm font-bold mb-2 text-left ml-1">請輸入班級座號</label>
+                <input type="text" id="learning-student-id" placeholder="例如: 70105" class="w-full p-4 rounded-xl border-2 border-blue-200 focus:border-blue-400 outline-none text-2xl text-center tracking-widest font-mono bg-blue-50">
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="closeLearningLogin()" class="flex-1 py-3 rounded-xl font-bold text-gray-500 bg-gray-100 hover:bg-gray-200">取消</button>
+                <button onclick="confirmLearningLogin()" class="flex-1 py-3 rounded-xl font-bold text-white bg-blue-400 hover:bg-blue-500 shadow-md">開始計時</button>
+            </div>
+        </div>
+    </div>
+<div id="learning-quiz-modal" class="modal" style="z-index: 70; display: none; align-items: center; justify-content: center;">
+        <div class="modal-content w-11/12 max-w-md mx-auto p-6 rounded-3xl text-center bg-white border-4 border-yellow-200 shadow-xl relative overflow-hidden">
+            
+            <div id="lq-feedback-area" class="absolute inset-0 flex items-center justify-center pointer-events-none z-50"></div>
+
+            <div class="text-4xl mb-2">🤔</div>
+            <h3 class="text-xl font-bold text-gray-700 mb-4">隨堂小測驗</h3>
+            <p class="text-sm text-gray-500 mb-4">離開前，考考你剛剛學過的字！(<span id="lq-current">1</span>/<span id="lq-total">3</span>)</p>
+            
+            <div id="lq-question" class="text-4xl font-bold text-blue-600 mb-6 font-mono my-8">Apple</div>
+            
+            <div id="lq-options" class="grid grid-cols-1 gap-3 max-h-[50vh] overflow-y-auto p-1">
+                </div>
+        </div>
+    </div>
+<div id="learning-summary-modal" class="modal" style="z-index: 60;">
+        <div class="modal-content w-11/12 max-w-md mx-auto mt-20 p-0 rounded-3xl flex flex-col max-h-[85vh]">
+            
+            <div class="bg-gradient-to-br from-green-400 to-teal-500 p-6 text-center text-white flex-shrink-0">
+                <div class="text-5xl mb-2">🎉</div>
+                <h3 class="text-2xl font-bold">學習歷程結算</h3>
+                <p class="opacity-90 text-sm mt-1">休息一下吧！</p>
+            </div>
+            
+            <div class="p-6 overflow-y-auto flex-grow">
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-gray-50 p-4 rounded-2xl text-center border border-gray-100">
+                        <div class="text-xs text-gray-400 mb-1">專注時間</div>
+                        <div id="summary-duration" class="text-2xl font-bold text-blue-600">00:00</div>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-2xl text-center border border-gray-100">
+                        <div class="text-xs text-gray-400 mb-1">探索單字</div>
+                        <div id="summary-count" class="text-2xl font-bold text-green-600">0</div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="text-xs text-gray-400 mb-2 ml-1">本次學習單字清單</div>
+                    <div id="summary-list" class="bg-yellow-50 p-3 rounded-xl text-sm text-gray-600 h-32 overflow-y-auto font-mono leading-relaxed border border-yellow-100">
+                        </div>
+                </div>
+
+                <div id="learning-save-status" class="text-center h-8 mb-2">
+                    </div>
+            </div>
+
+            <div class="p-6 pt-0 flex-shrink-0 bg-white">
+                <button id="btn-leave-learning" onclick="finalizeLearningSession()" class="w-full py-4 rounded-2xl font-bold text-white bg-gray-400 cursor-not-allowed transition shadow-md" disabled>
+                    <i class="fa-solid fa-spinner fa-spin"></i> 資料上傳中...
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
