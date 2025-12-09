@@ -2190,8 +2190,8 @@ learning: {
         };
 
         const SCORE_STANDARDS = {
-            'match': { 1: 20, 3: 57, 5: 90, 10: 180 },
-            'cloze': { 1: 15, 3: 42, 5: 65, 10: 130 }
+            'match': { 1: 14, 3: 36, 5: 50, 10: 90 },
+            'cloze': { 1: 10, 3: 25, 5: 40, 10: 70 }
         };
 
         // ----------------------------------------------------
@@ -2580,12 +2580,13 @@ function renderVocabulary() {
             document.getElementById('comboDisplay').innerText = appState.game.combo;
         }
 
-        function calculateCurrentScore() {
+function calculateCurrentScore() {
             const timeMin = appState.game.timeLimit / 60;
             const mode = appState.game.mode;
             const targets = SCORE_STANDARDS[mode] || SCORE_STANDARDS['cloze'];
             const target = targets[timeMin] || 15;
             
+            // 1. 基礎參數
             const BASE_FLOOR = 25; 
             const TARGET_SCORE_PORTION = 60;
             const weight = TARGET_SCORE_PORTION / target;
@@ -2593,15 +2594,33 @@ function renderVocabulary() {
             const total = appState.game.correctCount + appState.game.wrongQuestionIds.size;
             if (total === 0) return 0;
 
+            // 2. 計算準確率係數
             const rawAccuracy = appState.game.correctCount / total;
             const accFactor = 0.4 + (0.6 * rawAccuracy);
 
+            // 3. 計算基礎分 + 達成率分
             let baseScore = BASE_FLOOR + (appState.game.correctCount * weight * accFactor);
+            
+            // 4. 加上 Combo 連擊紅利 (這是造成超高分的主因)
             let totalScore = baseScore + appState.game.score;
 
+            // ==========================================
+            // 👇 修改重點開始：分數控制邏輯 👇
+            // ==========================================
+
+            // 第一道防線：超過 100 分的部分，打 5 折 (維持原網站設計，保護 100-150 分的一般高手)
             if (totalScore > 100) {
                 totalScore = 100 + (totalScore - 100) * 0.5;
             }
+
+            // 第二道防線：超過 150 分的部分，打 2 折 (新增設計，將神人級分數壓在 170 以下)
+            if (totalScore > 150) {
+                totalScore = 150 + (totalScore - 150) * 0.2;
+            }
+
+            // ==========================================
+            // 👆 修改重點結束 👆
+            // ==========================================
 
             return totalScore; 
         }
@@ -3307,6 +3326,7 @@ function interactCard(word, el) {
     </div>
 </body>
 </html>
+
 
 
 
