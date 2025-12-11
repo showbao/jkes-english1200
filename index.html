@@ -699,25 +699,19 @@ let learningQuizData = [];
 function renderLearningQuizQuestion() {
             const q = learningQuizData[learningQuizIndex];
             
-            // 更新進度與題目
             document.getElementById('lq-current').innerText = learningQuizIndex + 1;
             document.getElementById('lq-total').innerText = learningQuizData.length;
             document.getElementById('lq-question').innerText = q.question;
             
-            // 👇👇👇 新增：題目出現時，自動朗讀單字 👇👇👇
-            // 使用 playTTS，但要小心不要觸發「學習紀錄」(傳入 false 或 null 作為 callback)
-            // 這裡我們直接用 SpeechSynthesis 比較乾淨，或者用 playTTS 但確保不會重複記
-            // 因為現在是測驗模式，appState.learning.isActive 還是 true，所以直接用 playTTS 會被記下來
-            // 建議直接呼叫底層 API 避免干擾紀錄
+            // 🔥 語音修正
             const utterance = new SpeechSynthesisUtterance(q.question);
-            utterance.lang = 'en-US';
-            utterance.rate = 0.7;
+            utterance.lang = 'en-US'; // 強制美式
+            utterance.rate = 0.8;
             if (preferredVoice) utterance.voice = preferredVoice;
+            
             window.speechSynthesis.cancel();
             window.speechSynthesis.speak(utterance);
-            // 👆👆👆 新增結束 👆👆👆
 
-            // 產生選項按鈕
             const optionsDiv = document.getElementById('lq-options');
             optionsDiv.innerHTML = '';
 
@@ -725,13 +719,12 @@ function renderLearningQuizQuestion() {
                 const btn = document.createElement('button');
                 btn.className = "w-full py-3 h-auto min-h-[3rem] whitespace-normal leading-tight rounded-xl bg-gray-50 border-2 border-gray-100 text-gray-600 font-bold hover:bg-blue-50 hover:border-blue-200 transition text-lg flex items-center justify-center";
                 btn.innerText = opt;
-                // 傳入 btn 元素以便變色
                 btn.onclick = () => checkLearningQuizAnswer(opt, q.answer, btn);
                 optionsDiv.appendChild(btn);
             });
         }
+
 function checkLearningQuizAnswer(selected, correct, btnElement) {
-            // 鎖定所有按鈕
             const allBtns = document.getElementById('lq-options').querySelectorAll('button');
             allBtns.forEach(b => b.disabled = true);
 
@@ -744,17 +737,14 @@ function checkLearningQuizAnswer(selected, correct, btnElement) {
                 btnElement.classList.replace('border-gray-100', 'border-green-400');
                 btnElement.classList.add('text-green-700');
                 feedbackText = "Correct!"; 
-                // 綠色勾勾動畫
                 feedbackHtml = '<div class="text-6xl text-green-500 font-bold animate-pop drop-shadow-lg" style="text-shadow: 2px 2px 0 #fff;">Correct!</div>';
             } else {
                 btnElement.classList.replace('bg-gray-50', 'bg-red-100');
                 btnElement.classList.replace('border-gray-100', 'border-red-400');
                 btnElement.classList.add('text-red-700');
                 feedbackText = "Wrong!";
-                // 紅色叉叉動畫
                 feedbackHtml = '<div class="text-6xl text-red-500 font-bold animate-pop drop-shadow-lg" style="text-shadow: 2px 2px 0 #fff;">Oops!</div>';
                 
-                // 標示正確答案
                 allBtns.forEach(b => {
                     if(b.innerText === correct) {
                         b.classList.replace('bg-gray-50', 'bg-green-100');
@@ -764,22 +754,19 @@ function checkLearningQuizAnswer(selected, correct, btnElement) {
                 });
             }
 
-            // 顯示視覺回饋
             const fbArea = document.getElementById('lq-feedback-area');
             if (fbArea) {
                 fbArea.innerHTML = feedbackHtml;
-                // 1秒後清除
                 setTimeout(() => { fbArea.innerHTML = ''; }, 1000);
             }
 
-            // 播放音效
+            // 🔥 語音修正
             const utterance = new SpeechSynthesisUtterance(feedbackText);
-            utterance.lang = 'en-US';
+            utterance.lang = 'en-US'; // 強制美式
             utterance.rate = 1.0; 
             if (preferredVoice) utterance.voice = preferredVoice;
             window.speechSynthesis.speak(utterance);
 
-            // 延遲後進入下一題
             setTimeout(() => {
                 learningQuizIndex++;
                 if (learningQuizIndex < learningQuizData.length) {
@@ -2217,15 +2204,22 @@ learning: {
             }
         };
 
-        function loadVoices() {
+ function loadVoices() {
             const voices = window.speechSynthesis.getVoices();
-            const priorities = ["Google US English", "Samantha", "Microsoft Zira", "Google UK English Female", "Google UK English Male", "Natural"];
+            // 優先順序：Google 美式 -> 微軟 Zira (Win10/11標準美式) -> 蘋果 Samantha -> 任何美式
+            const priorities = ["Google US English", "Microsoft Zira", "Samantha", "Natural"];
             
             for (const name of priorities) {
                 preferredVoice = voices.find(v => v.name.includes(name));
                 if (preferredVoice) break;
             }
             
+            // 如果上述都沒找到，強制找任何標記為 en-US 的聲音
+            if (!preferredVoice) {
+                preferredVoice = voices.find(v => v.lang === 'en-US');
+            }
+            
+            // 最後防線：找任何英文
             if (!preferredVoice) {
                 preferredVoice = voices.find(v => v.lang.startsWith('en'));
             }
@@ -2781,58 +2775,49 @@ function triggerTeachingMode(questionObj) {
             const xBtn = document.getElementById('modal-x-btn');
             const sentSpeakerBtn = document.getElementById('modal-sent-speaker'); 
 
-            // 鎖定下方按鈕
             if(closeBtn) {
                 closeBtn.disabled = true;
                 closeBtn.classList.add('opacity-50', 'cursor-not-allowed');
                 closeBtn.innerText = "🔊 朗讀中... (請聆聽)"; 
             }
 
-            // 鎖定右上角 X
             if(xBtn) {
                 xBtn.style.pointerEvents = 'none';
                 xBtn.style.opacity = '0.3';
             }
 
-            // 修改例句按鈕文字為「朗讀中」
             if(sentSpeakerBtn) {
                 sentSpeakerBtn.innerHTML = '<i class="fa-solid fa-volume-high fa-beat"></i> 朗讀中...';
                 sentSpeakerBtn.classList.add('text-orange-500');
                 sentSpeakerBtn.style.pointerEvents = 'none';
             }
 
-            // 語音準備
+            // 🔥 語音修正區
             const wordUtterance = new SpeechSynthesisUtterance(questionObj.word);
-            wordUtterance.lang = 'en-US';
-            wordUtterance.rate = 0.7;
+            wordUtterance.lang = 'en-US'; // 強制美式
+            wordUtterance.rate = 0.8;
             if(preferredVoice) wordUtterance.voice = preferredVoice;
 
             const sentUtterance = new SpeechSynthesisUtterance(questionObj.sent);
-            sentUtterance.lang = 'en-US';
-            sentUtterance.rate = 0.7;
+            sentUtterance.lang = 'en-US'; // 強制美式
+            sentUtterance.rate = 0.8;
             if(preferredVoice) sentUtterance.voice = preferredVoice;
 
-            // --- 解鎖函式 ---
             const unlockAll = () => {
                 if(closeBtn) {
                     closeBtn.disabled = false;
                     closeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
                     closeBtn.innerText = "關閉 (回到遊戲)"; 
                 }
-                
                 if(xBtn) {
                     xBtn.style.pointerEvents = 'auto';
                     xBtn.style.opacity = '1';
                 }
-
-                // 👇👇👇【修改】唸完後，直接把這個按鈕隱藏起來 👇👇👇
                 if(sentSpeakerBtn) {
-                    sentSpeakerBtn.style.display = 'none'; // 隱藏按鈕
+                    sentSpeakerBtn.style.display = 'none'; 
                 }
-                // 👆👆👆 修改結束 👆👆👆
             };
 
-            // 接力邏輯
             wordUtterance.onend = function() {
                 setTimeout(() => {
                     window.speechSynthesis.speak(sentUtterance);
@@ -2866,26 +2851,52 @@ function triggerTeachingMode(questionObj) {
             showResults();
         }
 
+// 🟢 修改 2: 新增智慧教練建議系統
+        function generateFeedback(score, accuracy, speed, combo, isRecord, wrongCount, correctCount) {
+            // 優先檢查：是否破紀錄
+            if (isRecord && score > 60) return "🏆 太神啦！恭喜你打破本機最高紀錄，超越了過去的自己！保持這股氣勢繼續挑戰吧！(New Record!)";
+            
+            // 條件 1：神人級 (分數 > 100)
+            if (score >= 100) return "🌟 完美表現！你的速度、準度與穩定性都達到頂尖水準。你是真正的單字大師！建議可以挑戰更長時間的模式或是下一個等級喔！(Godlike!)";
+            
+            // 條件 2：亂猜型 (速度快但準確率低) - Speed < 2.5s 但 Accuracy < 60%
+            if (speed < 2.5 && accuracy < 60) return "⚡ 速度很快，但欲速則不達！你的答錯率偏高，導致分數被系統大量扣減。建議：**放慢速度，看清楚再按**，分數反而會變高喔！(Slow down!)";
+            
+            // 條件 3：謹慎型 (準確率高但速度慢) - Accuracy > 90% 但 Speed > 4s
+            if (accuracy > 90 && speed > 4.0) return "🎯 準確度極高！代表你對單字很熟悉。目前的瓶頸是「速度」，建議：**相信直覺，加快節奏**，試著把反應時間縮短，分數會大幅提升！(Speed up!)";
+            
+            // 條件 4：穩定型 (Combo 高)
+            if (combo > 15) return "🔥 節奏感很棒！你能連續答對這麼多題，代表專注力極佳。保持這種穩定性是拿高分的關鍵。(Great Rhythm!)";
+            
+            // 條件 5：需要加油 (分數不及格)
+            if (score < 60) {
+                if (correctCount < 10) return "💪 萬事起頭難！剛開始不熟悉沒關係，建議先使用「配對遊戲」多玩幾次，熟悉單字後再來挑戰。(Keep trying!)";
+                return "📉 別灰心！你的答對題數其實不少，只要減少「手滑」按錯的次數，分數馬上就會及格了。加油！(Focus on Accuracy!)";
+            }
+
+            // 預設評語 (及格但在中間)
+            return "👍 表現不錯！你已經掌握了大部分的單字。試著挑戰自己在更短的時間內完成作答，或是挑戰下一個等級吧！(Good job!)";
+        }
+
 function showResults() {
+            // 防止重複送出成績
             if (appState.game.scoreSent) return; 
             appState.game.scoreSent = true;      
 
             showSection('result-section');
             
+            // 1. 計算數據
             const finalScore = calculateCurrentScore();
-            
             const correctCount = appState.game.correctCount;
             const wrongCount = appState.game.wrongQuestionIds.size;
             const totalQuestions = correctCount + wrongCount;
-
             const displayLevel = levelMap[appState.game.level] || appState.game.level;
             const now = new Date();
             const dateStr = now.getFullYear() + '/' + (now.getMonth()+1) + '/' + now.getDate() + ' ' + now.getHours() + ':' + now.getMinutes();
-
             const modeCN = appState.game.mode === 'cloze' ? '克漏字' : '配對';
             const timeCN = Math.floor(appState.game.timeLimit / 60) + '分鐘';
 
-            // --- 1. 更新基本資訊 ---
+            // 2. 更新上方基本資訊
             const resultInfoEl = document.getElementById('result-info');
             resultInfoEl.innerHTML = `
                 <div>班級: ${appState.game.student} | 日期: ${dateStr}</div>
@@ -2893,32 +2904,29 @@ function showResults() {
                 <div id="save-status" class="mt-2 h-6 font-bold text-base"></div> 
             `;
             
+            // 3. 更新四格數據面板
             document.getElementById('result-total').innerText = totalQuestions;
             document.getElementById('result-correct').innerText = correctCount;
             document.getElementById('result-wrong').innerText = wrongCount;
             document.getElementById('result-combo').innerText = appState.game.maxCombo;
 
+            // 4. 更新分數顯示 (修正重點區：直接顯示總分)
             const scoreEl = document.getElementById('final-score');
             const bonusEl = document.getElementById('bonus-text');
             
-            // 分數顯示邏輯
-            let finalScoreDisplay = finalScore.toFixed(1);
-            if (finalScore > 100) {
-                scoreEl.innerText = "100"; 
-                bonusEl.innerText = `+ ${(finalScore - 100).toFixed(1)} 額外獎勵分! (神人級表現)`;
+            // 直接顯示計算後的最終分數 (不論是否超過100都直接顯示)
+            scoreEl.innerText = finalScore.toFixed(1);
+
+            // 下方顯示 Combo 資訊
+            if (appState.game.score > 0) {
+                bonusEl.innerHTML = `<span class="text-gray-500 text-sm font-bold">(含連擊紅利: <span class="text-red-500 text-lg">${appState.game.score}</span> 分)</span>`;
             } else {
-                scoreEl.innerText = finalScoreDisplay;
-                bonusEl.innerText = appState.game.score > 0 ? `(含 Combo 加分 ${appState.game.score})` : "";
+                bonusEl.innerHTML = "";
             }
 
-            // --- 2. 計算三個指標 ---
-            // A. 平均速度 (秒/題)
+            // 5. 計算分析指標 & 判斷新紀錄
             const avgTime = totalQuestions > 0 ? (appState.game.timeLimit / totalQuestions).toFixed(1) : "0.0";
-            
-            // B. 準確率 (%)
             const accuracyRate = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
-
-            // C. 本機最高紀錄 (localStorage)
             const storageKey = `highScore_${appState.game.level}_${appState.game.timeLimit}`;
             const lastHighScore = parseFloat(localStorage.getItem(storageKey)) || 0;
             let isNewRecord = false;
@@ -2928,40 +2936,32 @@ function showResults() {
                 isNewRecord = true;
             }
 
-            // --- 3. 生成專業建議 (客製化評語) ---
-            let suggestion = "";
-            
-            if (finalScore >= 100) {
-                suggestion = "太神啦！您的反應速度極快且準確率高，已經完全掌握了本級單字。建議可以挑戰下一個等級，或是縮短挑戰時間來突破自我極限！(Amazing!)";
-            } else if (finalScore >= 80) {
-                suggestion = "表現優異，基礎非常紮實！若想挑戰滿分，可以試著在確認答案時更果決一些，提升一點速度，分數就能突破天際喔！(Great job!)";
-            } else if (finalScore >= 60) {
-                suggestion = "做得很好，已經通過及格標準！從數據來看，只要能減少一些粗心的錯誤，或者多做幾題，分數就能大幅提升。(Good work!)";
-            } else if (accuracyRate > 80) {
-                // 分數低但準確度高 (謹慎型)
-                suggestion = "您的準確度非常高，代表您對單字很熟悉！目前的瓶頸是「速度」，下次試著相信自己的直覺，按快一點，分數絕對會翻倍！(Very accurate!)";
-            } else if (accuracyRate < 50) {
-                // 分數低且準確度低 (亂猜/不熟)
-                suggestion = "別灰心！目前的答錯率稍高，可能有些單字還不熟悉。建議先使用「配對遊戲」熟悉單字，或者多利用下方的「錯題複習」來加強記憶。(Take your time!)";
-            } else {
-                suggestion = "加油，持之以恆是學好英文的關鍵。建議每天花 5 分鐘練習，您會看到顯著的進步！(Keep going!)";
-            }
+            // 6. 呼叫智慧教練評語 (傳入各項參數以生成個人化建議)
+            // 確保您已經在前面的步驟中加入了 generateFeedback 函式
+            const suggestion = generateFeedback(
+                finalScore, 
+                accuracyRate, 
+                parseFloat(avgTime), 
+                appState.game.maxCombo, 
+                isNewRecord, 
+                wrongCount, 
+                correctCount
+            );
 
-            // --- 4. 更新分析區塊 UI ---
+            // 更新分析區塊 UI
             document.getElementById('analysis-speed').innerText = `${avgTime} 秒/題`;
             document.getElementById('analysis-accuracy').innerText = `${accuracyRate}%`;
             
             const bestEl = document.getElementById('analysis-best');
             if (isNewRecord) {
-                bestEl.innerHTML = `<span class="text-red-500 animate-pulse">🏆 ${finalScoreDisplay}</span>`;
+                bestEl.innerHTML = `<span class="text-red-500 animate-pulse">🏆 ${finalScore.toFixed(1)}</span>`;
             } else {
                 bestEl.innerText = lastHighScore.toFixed(1);
             }
 
             document.getElementById('analysis-text').innerText = suggestion;
 
-
-            // --- 5. 錯題列表 (維持原狀) ---
+            // 7. 生成錯題列表
             const list = document.getElementById('mistakes-list');
             let mistakesStr = "";
             if (appState.game.mistakes.length === 0) {
@@ -2980,7 +2980,7 @@ function showResults() {
                 mistakesStr = appState.game.mistakes.map(m => m.word).join(", ");
             }
 
-            // 傳送成績
+            // 8. 傳送成績到 Google Sheets
             sendScoreToGoogleSheets({
                 date: dateStr,
                 student: appState.game.student,
@@ -2993,6 +2993,7 @@ function showResults() {
                 mistakes: mistakesStr
             });
         }
+
         // ----------------------------------------------------
         // 7. Modal & TTS Helpers
         // ----------------------------------------------------
@@ -3061,49 +3062,34 @@ function showResults() {
         }
 
 function playTTSSequence(word, sent) {
-
              if (!('speechSynthesis' in window)) return;
              
-             // 1. 停止之前的聲音
              window.speechSynthesis.cancel();
 
-             // --- 準備發音物件 ---
-
-             // A. 英文單字
+             // A. 準備單字發音
              const wordUtterance = new SpeechSynthesisUtterance(word);
-             wordUtterance.lang = 'en-US';
-             wordUtterance.rate = 0.7;
+             wordUtterance.lang = 'en-US'; // 🔥 強制美式
+             wordUtterance.rate = 0.8;
              if (preferredVoice) wordUtterance.voice = preferredVoice;
 
-             // B. 英文例句
+             // B. 準備例句發音
              const sentUtterance = new SpeechSynthesisUtterance(sent);
-             sentUtterance.lang = 'en-US';
-             sentUtterance.rate = 0.7;
+             sentUtterance.lang = 'en-US'; // 🔥 強制美式
+             sentUtterance.rate = 0.8;
              if (preferredVoice) sentUtterance.voice = preferredVoice;
 
-             // --- 設定接力順序 ---
-
-             // 第一棒(單字) 跑完 -> 休息 0.3秒 -> 跑第二棒(例句)
+             // C. 設定接力順序
              wordUtterance.onend = function() {
-                 // 檢查視窗是否還開著
                  if (document.getElementById('word-modal').style.display === 'none') return;
-                 
                  setTimeout(() => {
-                     // 再次檢查 (防止延遲期間視窗被關閉)
                      if (document.getElementById('word-modal').style.display === 'none') return;
                      window.speechSynthesis.speak(sentUtterance);
                  }, 300);
              };
 
-             // 第二棒(例句) 跑完 -> 可以在這裡解鎖按鈕
-             sentUtterance.onend = function() {
-                 // 如果您有加上「唸完才能關閉」的鎖定功能，要在這裡寫解鎖程式碼
-                 // 例如：document.querySelector('#word-modal button').disabled = false;
-             };
-
-             // --- 開始播放 ---
              window.speechSynthesis.speak(wordUtterance);
         }
+
         function closeModal() {
             window.speechSynthesis.cancel(); 
             modal.style.display = 'none';
@@ -3128,38 +3114,35 @@ function playTTSSequence(word, sent) {
 
 // 修改：增加 trackingWord 參數
 // 修改：增加 trackingWord 參數 (用來記錄該句子屬於哪個單字)
-        function playTTS(input, typeOrCallback = null, trackingWord = null) {
-            
-            // --- 1. 學習歷程紀錄邏輯 (修復這裡！) ---
+function playTTS(input, typeOrCallback = null, trackingWord = null) {
+            // 1. 學習歷程紀錄
             if (appState.learning && appState.learning.isActive) {
-                // 處理 input (要唸的內容) -> 存入 sheetData (給老師看，包含例句)
-                // 因為現在都傳文字了，直接轉字串存入
                 let contentToLog = String(input);
                 appState.learning.sheetData.add(contentToLog);
-
-                // 處理 trackingWord (歸屬單字) -> 存入 learnedWords (給學生看，只看單字)
-                // 如果有傳入 trackingWord (例如唸例句時)，就記 trackingWord
-                // 如果沒傳入 (例如點正面單字)，就記 input 本身
                 const uiWord = trackingWord || contentToLog;
                 appState.learning.learnedWords.add(uiWord);
             }
-            // -----------------------------------
 
             if (!('speechSynthesis' in window)) return;
 
             let textToSpeak = input;
             let onEndCallback = null;
 
-            // 判斷是否為 callback (相容舊程式碼)
             if (typeof typeOrCallback === 'function') {
                 onEndCallback = typeOrCallback;
             }
 
-            // 開始播放
+            // 2. 開始播放
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(String(textToSpeak));
-            utterance.lang = 'en-US';
-            utterance.rate = 0.7; 
+            
+            // 🔥 強制設定為美式英文
+            utterance.lang = 'en-US'; 
+            
+            // 調整語速與音調，讓聲音更自然
+            utterance.rate = 0.8;  // 稍微放慢一點點，會比較清楚
+            utterance.pitch = 1.0; // 標準音調
+
             if (preferredVoice) utterance.voice = preferredVoice;
             
             if (onEndCallback) {
