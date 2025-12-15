@@ -805,21 +805,26 @@ function checkLearningQuizAnswer(selected, correct, btnElement) {
         }
 function confirmLearningLogin() {
             const studentId = document.getElementById('learning-student-id').value.trim();
-            if (!studentId || studentId.length < 3) {
-                alert("請輸入正確的班級座號！");
+            
+            // --- CTO 修改：統一改為 5 碼嚴格檢查 ---
+            // 檢查是否為空，或者長度不等於 5
+            if (!studentId || studentId.length !== 5) {
+                alert("請輸入正確的班級座號 (需為 5 碼數字)！");
                 return;
             }
+            // ------------------------------------
 
             appState.learning.isActive = true;
             appState.learning.studentId = studentId;
             appState.learning.startTime = Date.now();
             appState.learning.learnedWords.clear();
             appState.learning.sheetData.clear();
-            appState.learning.quizScore = 0; // 🆕 歸零
+            appState.learning.quizScore = 0; 
             
             closeLearningLogin();
             showSection('learn-section');
         }
+
         // 3. 卡片互動追蹤 (翻面時觸發)
         function interactCard(word, el) {
             if (appState.learning.isActive) {
@@ -2176,9 +2181,11 @@ learning: {
             'Mixed': '混合挑戰'
         };
 
-        const SCORE_STANDARDS = {
-            'match': { 1: 13, 3: 36, 5: 55, 10: 100 },
-            'cloze': { 1: 12, 3: 33, 5: 50, 10: 90 }
+     const SCORE_STANDARDS = {
+            'Elementary':   { 1: 10, 3: 28, 5: 45, 10: 85 }, // 初級標準
+            'Intermediate': { 1: 12, 3: 32, 5: 50, 10: 90 },  // 中級標準 (單字較難，標準調降)
+            'Advanced':     { 1: 15, 3: 42, 5: 75, 10: 130 },  // 高級標準
+            'Mixed':        { 1: 14, 3: 35, 5: 60, 10: 110 }   // 混合標準
         };
 
         // ----------------------------------------------------
@@ -2513,9 +2520,17 @@ function renderVocabulary() {
             });
         }
 
-        function startGame() {
+function startGame() {
             const student = document.getElementById('studentInfo').value.trim();
-            if (!student) { alert("請輸入班級座號喔！"); return; }
+            
+            // --- CTO 修改：加入 5 碼檢查 ---
+            // 檢查是否為空，或者長度不等於 5
+            if (!student || student.length !== 5) { 
+                alert("請輸入正確的班級座號 (需為 5 碼數字)！"); 
+                return; 
+            }
+            // -----------------------------
+
             if (!appState.game.selectedTime) { alert("請選擇挑戰時間！"); return; }
 
             const timeMin = appState.game.selectedTime;
@@ -2575,46 +2590,38 @@ function renderVocabulary() {
         }
 
 function calculateCurrentScore() {
-            const timeMin = appState.game.timeLimit / 60;
-            const mode = appState.game.mode;
-            const targets = SCORE_STANDARDS[mode] || SCORE_STANDARDS['cloze'];
-            const target = targets[timeMin] || 15;
+            // 使用 selectedTime (1, 3, 5, 10) 來對應上方的表格
+            const timeMin = appState.game.selectedTime; 
+            const level = appState.game.level;
             
-            // 1. 基礎參數
-            const BASE_FLOOR = 25; 
-            const TARGET_SCORE_PORTION = 60;
+            // 取得該等級與時間的「標準題數」
+            const levelStandards = SCORE_STANDARDS[level] || SCORE_STANDARDS['Elementary'];
+            const target = levelStandards[timeMin] || 15; // 防呆預設值
+            
+            // 您的修正需求：
+            const BASE_FLOOR = 15;           // 1. 基礎分改為 15
+            const TARGET_SCORE_PORTION = 50; // 2. 標準題得分改為 50
+            
             const weight = TARGET_SCORE_PORTION / target;
 
             const total = appState.game.correctCount + appState.game.wrongQuestionIds.size;
             if (total === 0) return 0;
 
-            // 2. 計算準確率係數
             const rawAccuracy = appState.game.correctCount / total;
             const accFactor = 0.4 + (0.6 * rawAccuracy);
 
-            // 3. 計算基礎分 + 達成率分
             let baseScore = BASE_FLOOR + (appState.game.correctCount * weight * accFactor);
             
-            // 4. 加上 Combo 連擊紅利 (這是造成超高分的主因)
+            // 加上連擊紅利
             let totalScore = baseScore + appState.game.score;
 
-            // ==========================================
-            // 👇 修改重點開始：分數控制邏輯 👇
-            // ==========================================
-
-            // 第一道防線：超過 100 分的部分，打 5 折 (維持原網站設計，保護 100-150 分的一般高手)
+            // 分數防通膨機制
             if (totalScore > 100) {
                 totalScore = 100 + (totalScore - 100) * 0.5;
             }
-
-            // 第二道防線：超過 150 分的部分，打 2 折 (新增設計，將神人級分數壓在 170 以下)
             if (totalScore > 150) {
                 totalScore = 150 + (totalScore - 150) * 0.2;
             }
-
-            // ==========================================
-            // 👆 修改重點結束 👆
-            // ==========================================
 
             return totalScore; 
         }
@@ -2741,7 +2748,7 @@ function nextQuestion() {
                 });
 
                 if (appState.game.combo >= 3) {
-                    appState.game.score += 1; 
+                    appState.game.score += 0.5; 
                 }
 
                 setTimeout(nextQuestion, 800);
@@ -3245,7 +3252,7 @@ function interactCard(word, el) {
             
             <div class="mb-6">
                 <label class="block text-gray-500 text-sm font-bold mb-2 text-left ml-1">請輸入班級座號</label>
-                <input type="text" id="learning-student-id" placeholder="例如: 70105" class="w-full p-4 rounded-xl border-2 border-blue-200 focus:border-blue-400 outline-none text-2xl text-center tracking-widest font-mono bg-blue-50">
+                <input type="text" id="learning-student-id" placeholder="70105（共5個數字）" class="w-full p-4 rounded-xl border-2 border-blue-200 focus:border-blue-400 outline-none text-2xl text-center tracking-widest font-mono bg-blue-50">
             </div>
 
             <div class="flex gap-3">
