@@ -2159,6 +2159,7 @@ learning: {
                 combo: 0,
                 maxCombo: 0,
                 correctCount: 0, 
+                correctOverflow: 0,
                 wrongQuestionIds: new Set(), 
                 totalAttempted: 0, 
                 questions: [],
@@ -2187,6 +2188,61 @@ learning: {
             'Advanced':     { 1: 15, 3: 42, 5: 75, 10: 130 },  // 高級標準
             'Mixed':        { 1: 14, 3: 35, 5: 60, 10: 110 }   // 混合標準
         };
+
+        // ===== 計分調整：目標「平均約 100」，高分組盡量壓在 140 內（不改 calculateCurrentScore）=====
+        function getTargetCount(level, timeMin) {
+            const levelStandards = SCORE_STANDARDS[level] || SCORE_STANDARDS['Elementary'];
+            return levelStandards?.[timeMin] ?? 15;
+        }
+
+        // 分段遞減 correctCount：中低分幾乎不受影響，高分組才會變慢/封頂
+        function applyDiminishingCorrectCount() {
+            const timeMin = appState.game.selectedTime;
+            const level = appState.game.level;
+
+            const target = getTargetCount(level, timeMin);
+
+            // 1:1 計分到 1.5 × target
+            const fullRateCap = Math.floor(target * 1.5);
+
+            // 最高只算到 3.0 × target（用來壓住高分上限）
+            const hardCap = Math.floor(target * 3.0);
+
+            if (appState.game.correctCount < fullRateCap) {
+                appState.game.correctCount++;
+                return;
+            }
+
+            if (appState.game.correctCount < hardCap) {
+                appState.game.correctOverflow = (appState.game.correctOverflow || 0) + 1;
+
+                // 進入遞減區後：每 2 題答對才 +1 correctCount
+                if (appState.game.correctOverflow >= 2) {
+                    appState.game.correctCount++;
+                    appState.game.correctOverflow = 0;
+                }
+            }
+        }
+
+        // 連擊紅利：遞減 + 上限（依時間），專門壓高分組
+        const COMBO_CAP_BY_TIME = { 1: 10, 3: 18, 5: 26, 10: 40 };
+
+        function comboIncrementForStreak(streak) {
+            if (streak <= 8) return 0.6;
+            if (streak <= 15) return 0.3;
+            return 0.1;
+        }
+
+        function addComboBonus() {
+            const timeMin = appState.game.selectedTime;
+            const cap = COMBO_CAP_BY_TIME[timeMin] ?? 18;
+
+            const inc = comboIncrementForStreak(appState.game.combo);
+            const next = (appState.game.score || 0) + inc;
+
+            appState.game.score = next > cap ? cap : next;
+        }
+
 
         // ----------------------------------------------------
         // 3. Initialization & Navigation
@@ -2545,6 +2601,7 @@ function startGame() {
             appState.game.combo = 0;
             appState.game.maxCombo = 0;
             appState.game.correctCount = 0;
+            appState.game.correctOverflow = 0;
             appState.game.wrongCount = 0;
             appState.game.wrongQuestionIds = new Set();
             appState.game.questions = [];
@@ -2723,7 +2780,7 @@ function nextQuestion() {
             
             if (isCorrect) {
                 if (appState.game.currentQWrongCount === 0) {
-                    appState.game.correctCount++;
+                    applyDiminishingCorrectCount();
                 } 
                 
                 btnElement.classList.remove('bg-white', 'border-gray-200');
@@ -2748,7 +2805,7 @@ function nextQuestion() {
                 });
 
                 if (appState.game.combo >= 3) {
-                    appState.game.score += 0.5; 
+                    addComboBonus();
                 }
 
                 setTimeout(nextQuestion, 800);
@@ -3316,6 +3373,7 @@ function interactCard(word, el) {
     </div>
 </body>
 </html>
+
 
 
 
