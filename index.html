@@ -409,7 +409,7 @@
                 <div class="space-y-6">
                     <div>
                         <label class="block text-gray-600 font-bold mb-2">班級座號</label>
-                        <input type="text" id="studentInfo" placeholder="例：70105（年級2碼+班級1碼+座號2碼）" class="w-full p-4 rounded-xl border-2 border-gray-200 focus:border-pink-300 outline-none text-xl text-center tracking-widest bg-gray-50 font-mono">
+                        <input type="text" id="studentInfo" placeholder="例：70105（年級1碼+班級2碼+座號2碼）" class="w-full p-4 rounded-xl border-2 border-gray-200 focus:border-pink-300 outline-none text-xl text-center tracking-widest bg-gray-50 font-mono">
                     </div>
 
                     <div>
@@ -2648,19 +2648,19 @@ function renderVocabulary() {
         }
 
         // ─── 各年級最大班級數設定（老師可依實際調整）───
-        // 格式：年級碼(01~06) → 最大班數
-        const GRADE_MAX_CLASS = { '01': 9, '02': 9, '03': 9, '04': 9, '05': 9, '06': 9 };
-        // 座號範圍
-        const SEAT_MIN = 1, SEAT_MAX = 30;
+        // 格式：年級碼(1~6，1碼) → 最大班數（班級碼為2碼，如01~06）
+        const GRADE_MAX_CLASS = { '1': 6, '2': 6, '3': 6, '4': 6, '5': 5, '6': 5 };
+        // 座號範圍（座號2碼，如01~40）
+        const SEAT_MIN = 1, SEAT_MAX = 40;
 
         function validateStudentId(id) {
             // 必須是5碼「半型數字」
             if (!/^\d{5}$/.test(id)) return '座號格式錯誤：請輸入 5 碼半型數字（例如 70105）';
-            const grade = id.slice(0, 2);   // 前2碼：年級 01~06
-            const cls   = parseInt(id[2]);   // 第3碼：班級
-            const seat  = parseInt(id.slice(3)); // 後2碼：座號
-            if (!GRADE_MAX_CLASS[grade]) return `年級碼「${grade}」無效，請輸入 01～06`;
-            if (cls < 1 || cls > GRADE_MAX_CLASS[grade]) return `${parseInt(grade)}年級班級碼「${cls}」無效，最多到 ${GRADE_MAX_CLASS[grade]} 班`;
+            const grade = id[0];             // 第1碼：年級 1~6
+            const cls   = parseInt(id.slice(1, 3)); // 第2~3碼：班級 01~最大班數
+            const seat  = parseInt(id.slice(3));    // 第4~5碼：座號 01~40
+            if (!GRADE_MAX_CLASS[grade]) return `年級碼「${grade}」無效，請輸入 1～6`;
+            if (cls < 1 || cls > GRADE_MAX_CLASS[grade]) return `${grade}年級班級碼「${String(cls).padStart(2,'0')}」無效，最多到 ${String(GRADE_MAX_CLASS[grade]).padStart(2,'0')} 班`;
             if (seat < SEAT_MIN || seat > SEAT_MAX) return `座號「${id.slice(3)}」無效，範圍是 ${String(SEAT_MIN).padStart(2,'0')}～${String(SEAT_MAX).padStart(2,'0')}`;
             return null; // 通過
         }
@@ -3442,7 +3442,7 @@ function interactCard(word, el) {
             
             <div class="mb-6">
                 <label class="block text-gray-500 text-sm font-bold mb-2 text-left ml-1">請輸入班級座號</label>
-                <input type="text" id="learning-student-id" placeholder="例：70105（年級2碼+班級1碼+座號2碼）" class="w-full p-4 rounded-xl border-2 border-blue-200 focus:border-blue-400 outline-none text-xl text-center tracking-widest font-mono bg-blue-50">
+                <input type="text" id="learning-student-id" placeholder="例：70105（年級1碼+班級2碼+座號2碼）" class="w-full p-4 rounded-xl border-2 border-blue-200 focus:border-blue-400 outline-none text-xl text-center tracking-widest font-mono bg-blue-50">
             </div>
 
             <div class="flex gap-3">
