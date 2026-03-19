@@ -2649,9 +2649,9 @@ function renderVocabulary() {
 
         // ─── 各年級最大班級數設定（老師可依實際調整）───
         // 格式：年級碼(01~06) → 最大班數
-        const GRADE_MAX_CLASS = { '01': 6, '02': 6, '03': 6, '04': 6, '05': 5, '06': 5 };
+        const GRADE_MAX_CLASS = { '01': 9, '02': 9, '03': 9, '04': 9, '05': 9, '06': 9 };
         // 座號範圍
-        const SEAT_MIN = 1, SEAT_MAX = 40;
+        const SEAT_MIN = 1, SEAT_MAX = 30;
 
         function validateStudentId(id) {
             // 必須是5碼「半型數字」
