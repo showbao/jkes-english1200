@@ -2372,14 +2372,7 @@ learning: {
             clearInterval(appState.game.timer);
             clearTimeout(appState.game.audioTimer);
 
-            // 保留原本設定
-            const student   = appState.game.student;
-            const timeLimit = appState.game.timeLimit;
-            const timeMin   = appState.game.selectedTime;
-            const level     = appState.game.level;
-            const mode      = appState.game.mode;
-
-            // 重設遊戲狀態
+            // 重設遊戲狀態（不保留時間，改為「答完即結束」模式）
             appState.game.score = 0;
             appState.game.scoreSent = false;
             appState.game.combo = 0;
@@ -2393,18 +2386,23 @@ learning: {
             appState.game.isLocked = false;
             appState.game.currentQWrongCount = 0;
             appState.game.isTeachingMode = false;
-            appState.game.timeLeft = timeLimit;
+            appState.game.timeLeft = 0;
+            appState.game.isRetryMode = true;          // 🆕 標記錯題練習模式
+            appState.game.retryTotal = mistakes.length; // 🆕 記錄總錯題數
+            appState.game.retryWrongIds = new Set();    // 🆕 本輪答錯紀錄
 
-            // 用錯題當題庫，洗牌後開始
+            // 用錯題當題庫，洗牌後開始，不啟動計時器
             appState.game.questions = shuffleArray(mistakes);
             appState.game.currentQuestionIndex = 0;
 
             showSection('game-play-section');
+
+            // 更新 dashboard 標頭文字
+            document.querySelector('#game-play-section .text-xs.text-gray-400:first-of-type').innerText = '剩餘題數';
+
             updateDashBoard();
             nextQuestion();
-
-            if (appState.game.timer) clearInterval(appState.game.timer);
-            appState.game.timer = setInterval(gameLoop, 1000);
+            // ⚠️ 不啟動 setInterval，無倒數計時
         }
 
         function showSection(sectionId) {
@@ -2649,9 +2647,9 @@ function renderVocabulary() {
 
         // ─── 各年級最大班級數設定（老師可依實際調整）───
         // 格式：年級碼(1~6，1碼) → 最大班數（班級碼為2碼，如01~06）
-        const GRADE_MAX_CLASS = { '1': 6, '2': 8, '3': 8, '4': 9, '5': 8, '6': 7 };
+        const GRADE_MAX_CLASS = { '1': 6, '2': 6, '3': 6, '4': 6, '5': 5, '6': 5 };
         // 座號範圍（座號2碼，如01~40）
-        const SEAT_MIN = 1, SEAT_MAX = 30;
+        const SEAT_MIN = 1, SEAT_MAX = 40;
 
         function validateStudentId(id) {
             // 必須是5碼「半型數字」
@@ -2711,6 +2709,9 @@ function startGame() {
             appState.game.isLocked = false;
             appState.game.currentQWrongCount = 0; 
             appState.game.isTeachingMode = false;
+            appState.game.isRetryMode = false;   // 確保非錯題練習模式
+            appState.game.retryTotal = 0;
+            appState.game.retryWrongIds = new Set();
             appState.game.questionPool = []; // 已出過的題目記錄
             appState.game.poolIndex = 0;
             
@@ -2741,17 +2742,32 @@ function startGame() {
         }
 
         function updateDashBoard() {
-            const m = Math.floor(appState.game.timeLeft / 60).toString().padStart(2, '0');
-            const s = (appState.game.timeLeft % 60).toString().padStart(2, '0');
             const timerEl = document.getElementById('timerDisplay');
-            timerEl.innerText = `${m}:${s}`;
-            // 最後10秒加上閃爍警示
-            if (appState.game.timeLeft <= 10 && appState.game.timeLeft > 0) {
-                timerEl.classList.add('timer-warning');
+            const timerLabel = document.querySelector('#game-play-section .text-xs.text-gray-400:first-of-type');
+
+            if (appState.game.isRetryMode) {
+                // 錯題練習模式：顯示剩餘題數
+                const remaining = appState.game.retryTotal - appState.game.currentQuestionIndex + 1;
+                const safeRemaining = Math.max(remaining, 0);
+                timerEl.innerText = `${safeRemaining}題`;
+                timerEl.classList.remove('timer-warning', 'text-red-400');
+                timerEl.classList.add('text-blue-400');
+                if (timerLabel) timerLabel.innerText = '剩餘題數';
             } else {
-                timerEl.classList.remove('timer-warning');
+                // 正常計時模式
+                const m = Math.floor(appState.game.timeLeft / 60).toString().padStart(2, '0');
+                const s = (appState.game.timeLeft % 60).toString().padStart(2, '0');
+                timerEl.innerText = `${m}:${s}`;
+                timerEl.classList.remove('text-blue-400');
+                timerEl.classList.add('text-red-400');
+                if (timerLabel) timerLabel.innerText = '剩餘時間';
+                if (appState.game.timeLeft <= 10 && appState.game.timeLeft > 0) {
+                    timerEl.classList.add('timer-warning');
+                } else {
+                    timerEl.classList.remove('timer-warning');
+                }
             }
-            
+
             const currentScore = calculateCurrentScore();
             document.getElementById('scoreDisplay').innerText = Math.floor(currentScore);
             document.getElementById('comboDisplay').innerText = appState.game.combo;
@@ -2806,10 +2822,30 @@ function nextQuestion() {
             appState.game.currentQWrongCount = 0;
             appState.game.questionStartTime = Date.now();
 
-            // 一輪題目出完後重新洗牌，確保不連續重複
+            // 一輪題目出完後：
             if (appState.game.currentQuestionIndex >= appState.game.questions.length) {
-                appState.game.questions = shuffleArray(appState.game.questions);
-                appState.game.currentQuestionIndex = 0;
+                if (appState.game.isRetryMode) {
+                    // 檢查這輪有沒有答錯的題目
+                    if (appState.game.retryWrongIds && appState.game.retryWrongIds.size > 0) {
+                        // 把答錯的題目撈出來，重新洗牌繼續練
+                        const wrongAgain = appState.game.questions.filter(
+                            q => appState.game.retryWrongIds.has(q.id)
+                        );
+                        appState.game.retryWrongIds.clear();
+                        appState.game.questions = shuffleArray(wrongAgain);
+                        appState.game.retryTotal = wrongAgain.length;
+                        appState.game.currentQuestionIndex = 0;
+                        // 提示學生進入下一輪
+                        triggerFeedback('再練一次！', 'text-orange-500');
+                    } else {
+                        // 全部答對，真正結束
+                        endGame();
+                        return;
+                    }
+                } else {
+                    appState.game.questions = shuffleArray(appState.game.questions);
+                    appState.game.currentQuestionIndex = 0;
+                }
             }
 
             const currentQ = appState.game.questions[appState.game.currentQuestionIndex];
@@ -2940,7 +2976,12 @@ function nextQuestion() {
 
             } else {
                 appState.game.currentQWrongCount++; 
-                appState.game.wrongQuestionIds.add(questionObj.id); 
+                appState.game.wrongQuestionIds.add(questionObj.id);
+                // retry 模式：記錄這輪答錯的題目，供下一輪繼續練
+                if (appState.game.isRetryMode) {
+                    if (!appState.game.retryWrongIds) appState.game.retryWrongIds = new Set();
+                    appState.game.retryWrongIds.add(questionObj.id);
+                } 
                 
                 btnElement.classList.remove('bg-white', 'border-gray-200');
                 btnElement.classList.add('bg-red-400', 'border-red-600', 'text-white');
