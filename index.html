@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-TW" translate="no">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -718,8 +718,10 @@ function renderLearningQuizQuestion() {
             q.options.forEach(opt => {
                 const btn = document.createElement('button');
                 btn.className = "w-full py-3 h-auto min-h-[3rem] whitespace-normal leading-tight rounded-xl bg-gray-50 border-2 border-gray-100 text-gray-600 font-bold hover:bg-blue-50 hover:border-blue-200 transition text-lg flex items-center justify-center";
+                btn.setAttribute('translate', 'no');
                 btn.innerText = opt;
-                btn.onclick = () => checkLearningQuizAnswer(opt, q.answer, btn);
+                btn.dataset.optVal = opt; // 用 data 屬性存值
+                btn.onclick = () => checkLearningQuizAnswer(btn.dataset.optVal, q.answer, btn);
                 optionsDiv.appendChild(btn);
             });
         }
@@ -746,7 +748,7 @@ function checkLearningQuizAnswer(selected, correct, btnElement) {
                 feedbackHtml = '<div class="text-6xl text-red-500 font-bold animate-pop drop-shadow-lg" style="text-shadow: 2px 2px 0 #fff;">Oops!</div>';
                 
                 allBtns.forEach(b => {
-                    if(b.innerText === correct) {
+                    if(b.dataset.optVal === correct) {
                         b.classList.replace('bg-gray-50', 'bg-green-100');
                         b.classList.replace('border-gray-100', 'border-green-400');
                         b.classList.add('text-green-700');
@@ -2748,8 +2750,11 @@ function nextQuestion() {
                 const btn = document.createElement('button');
                 // 移除 hover 樣式，解決手機版黏滯問題
                 btn.className = "w-full p-4 bg-white border-2 border-gray-200 rounded-2xl flex items-center justify-center text-2xl font-bold text-gray-600 transition shadow-sm active:scale-95 relative group";
+                btn.setAttribute('translate', 'no');
+                btn.dataset.optId = opt.id; // 用 data 屬性記錄答案 id，不依賴 innerText
                 
                 const span = document.createElement('span');
+                span.setAttribute('translate', 'no');
                 span.innerText = opt.word;
                 btn.appendChild(span);
                 
@@ -2758,13 +2763,15 @@ function nextQuestion() {
                      if(appState.game.isLocked) return;
                      btn.blur(); // 再次確保清除焦點
                      
+                     const isCorrect = parseInt(btn.dataset.optId) === currentQ.id; // 用 id 比對，不被翻譯影響
+
                      // 1. 先變色、計分
-                     checkAnswer(opt.id === currentQ.id, btn, currentQ);
+                     checkAnswer(isCorrect, btn, currentQ);
 
                      // 2. 唸出選項 -> 唸完後檢查是否要進教學
                      playTTS(opt.word, () => {
                          // 這裡檢查：如果剛剛那次按錯了(ID不同)，而且累積錯滿2次了
-                         if (opt.id !== currentQ.id && appState.game.currentQWrongCount >= 2) {
+                         if (!isCorrect && appState.game.currentQWrongCount >= 2) {
                              triggerTeachingMode(currentQ);
                          }
                      });
@@ -2779,6 +2786,10 @@ function nextQuestion() {
             if (appState.game.isLocked || appState.game.isTeachingMode) return;
             
             if (isCorrect) {
+                // 答對後立刻鎖住所有選項，防止連點重複加分
+                appState.game.isLocked = true;
+                document.querySelectorAll('#options-grid button').forEach(b => b.disabled = true);
+
                 if (appState.game.currentQWrongCount === 0) {
                     applyDiminishingCorrectCount();
                 } 
@@ -2808,7 +2819,10 @@ function nextQuestion() {
                     addComboBonus();
                 }
 
-                setTimeout(nextQuestion, 800);
+                setTimeout(() => {
+                    appState.game.isLocked = false;
+                    nextQuestion();
+                }, 800);
 
             } else {
                 appState.game.currentQWrongCount++; 
