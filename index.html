@@ -2856,7 +2856,7 @@ function nextQuestion() {
             const speakerBtn = document.getElementById('question-speaker');
             optionsGrid.innerHTML = ''; 
 
-            if (appState.game.mode === 'cloze') {
+if (appState.game.mode === 'cloze') {
                 // 克漏字模式
                 speakerBtn.style.display = 'block';
                 
@@ -2869,6 +2869,9 @@ function nextQuestion() {
                 }
 
                 const clozeSent = currentQ.sent.replace(regex, '_______');
+
+                // ★ 新增：判斷克漏字空格是否在句首
+                appState.game.isBlankAtStart = clozeSent.startsWith('_______');
                 
                 qCard.innerHTML = `
                     <span class="block mb-3" style="line-height: 1.4;">${clozeSent}</span>
@@ -2905,7 +2908,13 @@ function nextQuestion() {
                 
                 const span = document.createElement('span');
                 span.setAttribute('translate', 'no');
-                span.innerText = opt.word;
+
+                // ★ 修改：克漏字在句首時，選項首字母大寫
+                const shouldCapitalize = (appState.game.mode === 'cloze') && appState.game.isBlankAtStart;
+                span.innerText = shouldCapitalize
+                    ? opt.word.charAt(0).toUpperCase() + opt.word.slice(1)
+                    : opt.word;
+
                 btn.appendChild(span);
                 
                 // --- 點擊事件核心邏輯 ---
